@@ -2,6 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Phone, Lock, Eye, EyeOff, Trophy, ArrowLeft, MessageSquare } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
 export default function Login() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -59,178 +64,171 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-2 rounded-full text-sm font-semibold">
+          <Badge variant="outline" className="gap-2 px-4 py-2">
             <Trophy size={18} />
             Cricket Duniya
-          </div>
+          </Badge>
         </div>
 
-        {/* Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8">
-          {step === "phone" ? (
-            <>
-              <h1 className="text-3xl font-bold text-center mb-2">Welcome Back</h1>
-              <p className="text-slate-400 text-center mb-8">
-                Sign in to continue to your cricket world
-              </p>
+        <Card className="p-2">
+          <CardContent className="pt-6">
+            {step === "phone" ? (
+              <>
+                <CardHeader className="px-0 pb-6 text-center">
+                  <CardTitle className="text-3xl">Welcome Back</CardTitle>
+                  <p className="text-muted-foreground text-sm mt-2">
+                    Sign in to continue to your cricket world
+                  </p>
+                </CardHeader>
 
-              <form onSubmit={handleSendOtp} className="space-y-5">
-                {/* Phone */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">
-                    Phone Number
-                  </label>
-                  <div className="relative">
-                    <Phone
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
-                      size={20}
-                    />
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Enter your phone number"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl py-3 pl-12 pr-4 text-white placeholder-slate-500 focus:outline-none focus:border-green-500 transition"
-                      required
-                    />
+                <form onSubmit={handleSendOtp} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">
+                      Phone Number
+                    </label>
+                    <div className="relative">
+                      <Phone
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        size={18}
+                      />
+                      <Input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="Enter your phone number"
+                        className="pl-10 h-11"
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* Password */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
-                      size={20}
-                    />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl py-3 pl-12 pr-12 text-white placeholder-slate-500 focus:outline-none focus:border-green-500 transition"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                    >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <Lock
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        size={18}
+                      />
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        className="pl-10 pr-10 h-11"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                {error && <p className="text-red-400 text-sm">{error}</p>}
+                  {error && <p className="text-sm font-medium">{error}</p>}
 
-                <button
-                  type="submit"
-                  className="w-full bg-green-500 hover:bg-green-600 py-3 rounded-xl font-bold text-lg transition"
+                  <Button type="submit" className="w-full h-11 text-base">
+                    Send OTP
+                  </Button>
+                </form>
+              </>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setStep("phone")}
+                  className="mb-4 px-0"
                 >
-                  Send OTP
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() => setStep("phone")}
-                className="flex items-center gap-2 text-slate-400 hover:text-white mb-4"
-              >
-                <ArrowLeft size={20} />
-                Back
-              </button>
+                  <ArrowLeft size={18} />
+                  Back
+                </Button>
 
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <MessageSquare className="text-green-400" size={32} />
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                    <MessageSquare size={28} />
+                  </div>
+                  <h1 className="text-3xl font-bold mb-2">Verify OTP</h1>
+                  <p className="text-muted-foreground text-sm">
+                    Code sent to <span className="font-semibold text-foreground">{phone}</span>
+                  </p>
                 </div>
-                <h1 className="text-3xl font-bold mb-2">Verify OTP</h1>
-                <p className="text-slate-400">
-                  Enter the 6-digit code sent to <span className="text-green-400">{phone}</span>
+
+                <form onSubmit={handleVerifyOtp} className="space-y-6">
+                  <div className="flex justify-center gap-2">
+                    {otp.map((digit, index) => (
+                      <Input
+                        key={index}
+                        id={`otp-${index}`}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        className="w-11 h-11 text-center text-lg font-bold"
+                      />
+                    ))}
+                  </div>
+
+                  {error && (
+                    <p className="text-sm text-center font-medium">{error}</p>
+                  )}
+
+                  <Button type="submit" className="w-full h-11 text-base">
+                    Verify & Login
+                  </Button>
+                </form>
+
+                <p className="text-center text-muted-foreground text-sm mt-6">
+                  Didn&apos;t receive the code?{" "}
+                  <button
+                    type="button"
+                    onClick={resendOtp}
+                    className="font-semibold text-foreground underline"
+                  >
+                    Resend OTP
+                  </button>
                 </p>
-              </div>
+              </>
+            )}
 
-              <form onSubmit={handleVerifyOtp} className="space-y-6">
-                {/* OTP Inputs */}
-                <div className="flex justify-center gap-2">
-                  {otp.map((digit, index) => (
-                    <input
-                      key={index}
-                      id={`otp-${index}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(index, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      className="w-12 h-12 bg-slate-800 border border-slate-700 rounded-xl text-center text-xl font-bold focus:outline-none focus:border-green-500 transition"
-                    />
-                  ))}
+            {step === "phone" && (
+              <>
+                <div className="flex items-center gap-4 my-6">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-muted-foreground text-sm">or</span>
+                  <div className="flex-1 h-px bg-border" />
                 </div>
 
-                {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-
-                <button
-                  type="submit"
-                  className="w-full bg-green-500 hover:bg-green-600 py-3 rounded-xl font-bold text-lg transition"
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-11"
+                  onClick={() => navigate("/matches")}
                 >
-                  Verify & Login
-                </button>
-              </form>
+                  Continue as Guest
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
-              <p className="text-center text-slate-400 mt-6">
-                Didn't receive the code?{" "}
-                <button onClick={resendOtp} className="text-green-400 hover:text-green-300">
-                  Resend OTP
-                </button>
-              </p>
-            </>
-          )}
-
-          {/* Divider */}
-          {step === "phone" && (
-            <>
-              <div className="flex items-center gap-4 my-6">
-                <div className="flex-1 h-px bg-slate-800" />
-                <span className="text-slate-500 text-sm">or</span>
-                <div className="flex-1 h-px bg-slate-800" />
-              </div>
-
-              {/* Guest Option */}
-              <button
-                onClick={() => navigate("/home")}
-                className="w-full border border-slate-700 hover:border-green-400 py-3 rounded-xl font-bold transition"
-              >
-                Continue as Guest
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Signup Link */}
         {step === "phone" && (
-          <p className="text-center mt-6 text-slate-400">
-            Don't have an account?{" "}
-            <Link to="/signup" className="text-green-400 hover:text-green-300 font-semibold">
+          <p className="text-center mt-6 text-muted-foreground text-sm">
+            Don&apos;t have an account?{" "}
+            <Link to="/signup" className="font-semibold text-foreground underline">
               Sign Up
             </Link>
           </p>
         )}
-
-        {/* Back to Home */}
-        <div className="text-center mt-4">
-          <Link to="/" className="text-slate-500 hover:text-slate-400 text-sm">
-            ← Back to Home
-          </Link>
-        </div>
       </div>
     </div>
   );

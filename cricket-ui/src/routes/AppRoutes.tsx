@@ -5,6 +5,7 @@ import MainLayout from "../layouts/MainLayout";
 import Home from "../pages/Home";
 import Landing from "../pages/Landing";
 import Login from "../pages/Login";
+import Matches from "../pages/Matches";
 import Signup from "../pages/Signup";
 
 export default function AppRoutes() {
@@ -18,6 +19,14 @@ export default function AppRoutes() {
           element={
             <MainLayout>
               <Home />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/matches"
+          element={
+            <MainLayout>
+              <Matches />
             </MainLayout>
           }
         />
