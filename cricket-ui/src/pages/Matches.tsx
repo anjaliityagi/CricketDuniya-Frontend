@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Plus, Radio, Calendar, Trophy } from "lucide-react";
 
-import { mockMatches, type Match } from "@/data/mockMatches";
+import { getMatches } from "@/data/matchStore";
+import type { Match } from "@/data/mockMatches";
 import MatchCard from "@/components/MatchCard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,18 +20,19 @@ const filters: { id: FilterType; label: string }[] = [
 export default function Matches() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
-  const liveCount = mockMatches.filter((m) => m.status === "live").length;
-  const upcomingCount = mockMatches.filter((m) => m.status === "scheduled").length;
-  const completedCount = mockMatches.filter((m) => m.status === "completed").length;
+  const allMatches = getMatches();
+
+  const liveCount = allMatches.filter((m) => m.status === "live").length;
+  const upcomingCount = allMatches.filter((m) => m.status === "scheduled").length;
+  const completedCount = allMatches.filter((m) => m.status === "completed").length;
 
   const filteredMatches = useMemo(() => {
-    if (activeFilter === "all") return mockMatches;
-    return mockMatches.filter((match) => match.status === activeFilter);
-  }, [activeFilter]);
+    if (activeFilter === "all") return allMatches;
+    return allMatches.filter((match) => match.status === activeFilter);
+  }, [activeFilter, allMatches]);
 
   return (
     <div className="max-w-[430px] mx-auto min-h-[85vh] pb-28">
-      {/* header */}
       <div className="mb-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-2">
           Cricket Duniya
@@ -40,14 +43,12 @@ export default function Matches() {
         </p>
       </div>
 
-      {/* quick stats */}
       <div className="grid grid-cols-3 gap-2 mb-6">
         <StatCard icon={Radio} label="Live" value={liveCount} active={liveCount > 0} />
         <StatCard icon={Calendar} label="Upcoming" value={upcomingCount} />
         <StatCard icon={Trophy} label="Done" value={completedCount} />
       </div>
 
-      {/* filter pills */}
       <div className="flex gap-2 overflow-x-auto pb-1 mb-5 scrollbar-hide">
         {filters.map((filter) => (
           <Button
@@ -66,7 +67,6 @@ export default function Matches() {
         ))}
       </div>
 
-      {/* match list */}
       {filteredMatches.length > 0 ? (
         <div className="space-y-1">
           {activeFilter === "all" && liveCount > 0 && (
@@ -89,7 +89,7 @@ export default function Matches() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-16 px-6 rounded-2xl border border-dashed border-border bg-neutral-50">
+        <div className="text-center py-16 px-6 rounded-2xl border border-dashed border-border bg-muted">
           <p className="font-semibold">No matches here</p>
           <p className="text-muted-foreground text-sm mt-2">
             Try another filter or create a new match
@@ -97,14 +97,12 @@ export default function Matches() {
         </div>
       )}
 
-      {/* create button */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 pb-6 pt-10 bg-gradient-to-t from-background via-background to-transparent pointer-events-none">
-        <Button
-          type="button"
-          className="pointer-events-auto w-full h-12 rounded-2xl text-base font-bold shadow-xl gap-2"
-        >
-          <Plus size={20} strokeWidth={2.5} />
-          Create Match
+        <Button asChild className="pointer-events-auto w-full h-12 rounded-2xl text-base font-bold shadow-xl gap-2">
+          <Link to="/matches/create">
+            <Plus size={20} strokeWidth={2.5} />
+            Create Match
+          </Link>
         </Button>
       </div>
     </div>
@@ -127,8 +125,8 @@ function StatCard({
       className={cn(
         "rounded-xl border px-3 py-3 text-center transition-colors",
         active
-          ? "border-green-600/25 bg-green-50"
-          : "border-border bg-neutral-50"
+          ? "border-green-600/25 dark:border-green-500/30 bg-green-50 dark:bg-green-950/40"
+          : "border-border bg-muted"
       )}
     >
       <Icon

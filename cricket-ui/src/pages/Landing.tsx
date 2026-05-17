@@ -4,9 +4,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-        {/* STACK ON MOBILE FIRST */}
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          {/* LEFT */}
           <div className="w-full">
             <div className="text-center lg:text-left">
               <div className="inline-block bg-green-500/10 border border-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs sm:text-sm mb-6">
@@ -23,7 +21,6 @@ export default function Landing() {
                 tournaments.
               </p>
 
-              {/* BUTTONS */}
               <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Link
                   to="/login"
@@ -49,7 +46,6 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* RIGHT - HIDDEN ON MOBILE */}
           <div className="hidden lg:block w-full">
             <div className="relative">
               <div className="absolute inset-0 bg-green-500 blur-[120px] opacity-20" />
@@ -68,7 +64,6 @@ export default function Landing() {
                   </span>
                 </div>
 
-                {/* SCORE */}
                 <div className="grid grid-cols-3 items-center text-center">
                   <div>
                     <div className="w-16 h-16 mx-auto rounded-full bg-blue-500/20 mb-3" />

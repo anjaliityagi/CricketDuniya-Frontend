@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 import type { Match } from "@/data/mockMatches";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -17,55 +19,57 @@ function MatchCard({ match }: MatchCardProps) {
   const isLive = match.status === "live";
 
   return (
-    <Card
-      className={cn(
-        "mb-4 rounded-2xl border border-neutral-200 bg-neutral-100 py-0 shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.99]",
-        isLive && "border-green-600/30 shadow-green-600/5 ring-1 ring-green-600/10"
-      )}
-    >
-      <CardContent className="p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          {isLive && (
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-600 opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-600" />
-            </span>
-          )}
-          <p
-            className={cn(
-              "text-[11px] font-bold tracking-[0.14em] uppercase",
-              isLive ? "text-green-600" : "text-muted-foreground"
+    <Link to={`/matches/${match.id}`} className="block">
+      <Card
+        className={cn(
+          "mb-4 rounded-2xl border border-border bg-card py-0 shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.99]",
+        isLive && "border-green-600/30 dark:border-green-500/40 shadow-green-600/5 ring-1 ring-green-600/10"
+        )}
+      >
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            {isLive && (
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-600 opacity-60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-600" />
+              </span>
             )}
-          >
-            {getStatusLabel(match.status)}
-          </p>
-        </div>
-
-        <h3 className="text-[1.35rem] font-bold leading-snug tracking-tight">
-          {title}
-        </h3>
-
-        <div className="rounded-xl bg-white border border-neutral-200 overflow-hidden">
-          <div className="flex items-stretch">
-            <TeamScore
-              team={match.teamOneName}
-              score={match.teamOneScore}
-              highlight={isLive}
-            />
-            <div className="w-px bg-neutral-200 self-stretch my-4" />
-            <TeamScore
-              team={match.teamTwoName}
-              score={match.teamTwoScore}
-              highlight={isLive}
-            />
+            <p
+              className={cn(
+                "text-[11px] font-bold tracking-[0.14em] uppercase",
+                isLive ? "text-green-600" : "text-muted-foreground"
+              )}
+            >
+              {getStatusLabel(match.status)}
+            </p>
           </div>
-        </div>
 
-        <p className="text-muted-foreground text-sm leading-relaxed border-t border-dashed border-border pt-3">
-          {match.matchNote || `${match.overs_per_side} overs`}
-        </p>
-      </CardContent>
-    </Card>
+          <h3 className="text-[1.35rem] font-bold leading-snug tracking-tight">
+            {title}
+          </h3>
+
+          <div className="rounded-xl bg-background border border-border overflow-hidden">
+            <div className="flex items-stretch">
+              <TeamScore
+                team={match.teamOneName}
+                score={match.teamOneScore}
+                highlight={isLive}
+              />
+              <div className="w-px bg-border self-stretch my-4" />
+              <TeamScore
+                team={match.teamTwoName}
+                score={match.teamTwoScore}
+                highlight={isLive}
+              />
+            </div>
+          </div>
+
+          <p className="text-muted-foreground text-sm leading-relaxed border-t border-dashed border-border pt-3">
+            {match.matchNote || `${match.overs_per_side} overs`}
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 

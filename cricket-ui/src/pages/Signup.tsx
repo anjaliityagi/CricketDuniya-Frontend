@@ -66,7 +66,6 @@ export default function Signup() {
   return (
     <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-2 rounded-full text-sm font-semibold">
             <Trophy size={18} />
@@ -74,7 +73,6 @@ export default function Signup() {
           </div>
         </div>
 
-        {/* Card */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8">
           {step === "details" ? (
             <>
@@ -84,7 +82,6 @@ export default function Signup() {
               </p>
 
               <form onSubmit={handleSendOtp} className="space-y-5">
-                {/* Name */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-300 mb-2">
                     Full Name
@@ -105,7 +102,6 @@ export default function Signup() {
                   </div>
                 </div>
 
-                {/* Phone */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-300 mb-2">
                     Phone Number
@@ -126,7 +122,6 @@ export default function Signup() {
                   </div>
                 </div>
 
-                {/* Password */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-300 mb-2">
                     Password
@@ -185,7 +180,6 @@ export default function Signup() {
               </div>
 
               <form onSubmit={handleVerifyOtp} className="space-y-6">
-                {/* OTP Inputs */}
                 <div className="flex justify-center gap-2">
                   {otp.map((digit, index) => (
                     <input
@@ -221,7 +215,6 @@ export default function Signup() {
             </>
           )}
 
-          {/* Divider */}
           {step === "details" && (
             <>
               <div className="flex items-center gap-4 my-6">
@@ -230,7 +223,6 @@ export default function Signup() {
                 <div className="flex-1 h-px bg-slate-800" />
               </div>
 
-              {/* Guest Option */}
               <button
                 onClick={() => navigate("/home")}
                 className="w-full border border-slate-700 hover:border-green-400 py-3 rounded-xl font-bold transition"
@@ -241,7 +233,6 @@ export default function Signup() {
           )}
         </div>
 
-        {/* Login Link */}
         {step === "details" && (
           <p className="text-center mt-6 text-slate-400">
             Already have an account?{" "}
@@ -251,7 +242,6 @@ export default function Signup() {
           </p>
         )}
 
-        {/* Back to Home */}
         <div className="text-center mt-4">
           <Link to="/" className="text-slate-500 hover:text-slate-400 text-sm">
             ← Back to Home

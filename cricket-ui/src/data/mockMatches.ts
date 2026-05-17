@@ -1,4 +1,8 @@
-// hardcoded match data (no API for now)
+export type MatchPlayer = {
+  id: string;
+  name: string;
+  isHost?: boolean;
+};
 
 export type Match = {
   id: string;
@@ -9,6 +13,11 @@ export type Match = {
   teamTwoScore?: string;
   matchNote?: string;
   overs_per_side: number;
+  venue?: string;
+  teamOnePlayers?: MatchPlayer[];
+  teamTwoPlayers?: MatchPlayer[];
+  tossWinner?: "one" | "two";
+  tossDecision?: "bat" | "bowl";
 };
 
 export const mockMatches: Match[] = [
@@ -21,6 +30,7 @@ export const mockMatches: Match[] = [
     teamTwoScore: "198/8",
     matchNote: "20 ov - Super Over next",
     overs_per_side: 20,
+    venue: "Green Park, Lucknow",
   },
   {
     id: "match-002",
@@ -31,6 +41,7 @@ export const mockMatches: Match[] = [
     teamTwoScore: "—",
     matchNote: "10 ov - Starts today 3:30 PM",
     overs_per_side: 10,
+    venue: "Wankhede Stadium",
   },
   {
     id: "match-003",
@@ -41,6 +52,7 @@ export const mockMatches: Match[] = [
     teamTwoScore: "179/5",
     matchNote: "20 ov - KKR won by 5 wickets",
     overs_per_side: 20,
+    venue: "Chinnaswamy Stadium",
   },
   {
     id: "match-004",
@@ -51,5 +63,6 @@ export const mockMatches: Match[] = [
     teamTwoScore: "—",
     matchNote: "15 ov - Tomorrow 6:00 PM",
     overs_per_side: 15,
+    venue: "Narendra Modi Stadium",
   },
 ];
