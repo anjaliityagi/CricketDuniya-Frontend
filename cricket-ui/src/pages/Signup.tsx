@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Phone, Lock, Eye, EyeOff, User, Trophy, ArrowLeft, MessageSquare } from "lucide-react";
+import {
+  Phone,
+  Lock,
+  Eye,
+  EyeOff,
+  User,
+  Trophy,
+  ArrowLeft,
+  MessageSquare,
+} from "lucide-react";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -76,7 +85,9 @@ export default function Signup() {
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8">
           {step === "details" ? (
             <>
-              <h1 className="text-3xl font-bold text-center mb-2">Create Account</h1>
+              <h1 className="text-3xl font-bold text-center mb-2">
+                Create Account
+              </h1>
               <p className="text-slate-400 text-center mb-8">
                 Join the cricket revolution today
               </p>
@@ -175,7 +186,8 @@ export default function Signup() {
                 </div>
                 <h1 className="text-3xl font-bold mb-2">Verify OTP</h1>
                 <p className="text-slate-400">
-                  Enter the 6-digit code sent to <span className="text-green-400">{phone}</span>
+                  Enter the 6-digit code sent to{" "}
+                  <span className="text-green-400">{phone}</span>
                 </p>
               </div>
 
@@ -196,7 +208,9 @@ export default function Signup() {
                   ))}
                 </div>
 
-                {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+                {error && (
+                  <p className="text-red-400 text-sm text-center">{error}</p>
+                )}
 
                 <button
                   type="submit"
@@ -208,7 +222,10 @@ export default function Signup() {
 
               <p className="text-center text-slate-400 mt-6">
                 Didn't receive the code?{" "}
-                <button onClick={resendOtp} className="text-green-400 hover:text-green-300">
+                <button
+                  onClick={resendOtp}
+                  className="text-green-400 hover:text-green-300"
+                >
                   Resend OTP
                 </button>
               </p>
@@ -224,7 +241,7 @@ export default function Signup() {
               </div>
 
               <button
-                onClick={() => navigate("/home")}
+                onClick={() => navigate("/matches")}
                 className="w-full border border-slate-700 hover:border-green-400 py-3 rounded-xl font-bold transition"
               >
                 Continue as Guest
@@ -236,7 +253,10 @@ export default function Signup() {
         {step === "details" && (
           <p className="text-center mt-6 text-slate-400">
             Already have an account?{" "}
-            <Link to="/login" className="text-green-400 hover:text-green-300 font-semibold">
+            <Link
+              to="/login"
+              className="text-green-400 hover:text-green-300 font-semibold"
+            >
               Sign In
             </Link>
           </p>
