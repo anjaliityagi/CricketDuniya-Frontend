@@ -406,7 +406,7 @@ export function endMatch(id: string) {
 export function addPlayerToTeam(
   matchId: string,
   team: "one" | "two",
-  player: { id: string; name: string; isHost?: boolean }
+  player: MatchPlayer
 ) {
   const match = getMatchById(matchId);
   if (!match) return;

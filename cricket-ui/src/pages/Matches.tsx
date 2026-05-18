@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Radio, Calendar, Trophy } from "lucide-react";
+import { Plus, Radio, Calendar, Trophy, Loader2, RefreshCw } from "lucide-react";
 
-import { getMatches } from "@/data/matchStore";
 import type { Match } from "@/data/mockMatches";
 import MatchCard from "@/components/MatchCard";
 import { Button } from "@/components/ui/button";
+import { useMatchesQuery } from "@/hooks/useMatchesQuery";
 import { cn } from "@/lib/utils";
 
 type FilterType = "all" | Match["status"];
@@ -19,8 +19,13 @@ const filters: { id: FilterType; label: string }[] = [
 
 export default function Matches() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
-
-  const allMatches = getMatches();
+  const {
+    data: allMatches = [],
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+  } = useMatchesQuery();
 
   const liveCount = allMatches.filter((m) => m.status === "live").length;
   const upcomingCount = allMatches.filter((m) => m.status === "scheduled").length;
@@ -67,7 +72,34 @@ export default function Matches() {
         ))}
       </div>
 
-      {filteredMatches.length > 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
+          <Loader2 className="animate-spin" size={20} />
+          <span className="text-sm font-medium">Loading matches</span>
+        </div>
+      ) : isError ? (
+        <div className="text-center py-16 px-6 rounded-2xl border border-dashed border-border bg-muted">
+          <p className="font-semibold">Could not load matches</p>
+          <p className="text-muted-foreground text-sm mt-2">
+            Check the backend and try again
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-5 gap-2"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            {isFetching ? (
+              <Loader2 className="animate-spin" size={16} />
+            ) : (
+              <RefreshCw size={16} />
+            )}
+            Retry
+          </Button>
+        </div>
+      ) : filteredMatches.length > 0 ? (
         <div className="space-y-1">
           {activeFilter === "all" && liveCount > 0 && (
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 px-1">
@@ -125,7 +157,7 @@ function StatCard({
       className={cn(
         "rounded-xl border px-3 py-3 text-center transition-colors",
         active
-          ? "border-green-600/25 dark:border-green-500/30 bg-green-50 dark:bg-green-950/40"
+          ? "border-primary/30 bg-primary/10"
           : "border-border bg-muted"
       )}
     >
@@ -133,7 +165,7 @@ function StatCard({
         size={16}
         className={cn(
           "mx-auto mb-1.5",
-          active ? "text-green-600" : "text-muted-foreground"
+          active ? "text-primary" : "text-muted-foreground"
         )}
       />
       <p className="text-lg font-black leading-none">{value}</p>

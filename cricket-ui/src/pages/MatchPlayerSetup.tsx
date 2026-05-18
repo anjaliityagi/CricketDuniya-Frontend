@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Copy, Link2, UserPlus } from "lucide-react";
+import { ArrowLeft, Phone, UserPlus } from "lucide-react";
 
 import {
   addPlayerToTeam,
@@ -10,6 +10,7 @@ import {
 import { mockPlayers } from "@/data/mockPlayers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 type ActiveTeam = "one" | "two";
@@ -20,7 +21,9 @@ export default function MatchPlayerSetup() {
 
   const [activeTeam, setActiveTeam] = useState<ActiveTeam>("one");
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [newPlayerName, setNewPlayerName] = useState("");
+  const [newPlayerPhone, setNewPlayerPhone] = useState("");
+  const [newPlayerError, setNewPlayerError] = useState("");
   const [match, setMatch] = useState(() => getMatchById(id || ""));
 
   function refreshMatch() {
@@ -45,8 +48,6 @@ export default function MatchPlayerSetup() {
   const addedPlayerIds = [...teamOnePlayers, ...teamTwoPlayers].map((p) => p.id);
   const availablePlayers = mockPlayers.filter((p) => !addedPlayerIds.includes(p.id));
 
-  const inviteLink = `${window.location.origin}/invite/${id}?team=${activeTeam}`;
-
   function handleAddPlayer() {
     if (!selectedPlayerId) return;
 
@@ -62,20 +63,45 @@ export default function MatchPlayerSetup() {
     refreshMatch();
   }
 
+  function handleAddNewPlayer() {
+    const name = newPlayerName.trim();
+    const phone = newPlayerPhone.trim();
+
+    if (!name || !phone) {
+      setNewPlayerError("Enter player name and phone number");
+      return;
+    }
+
+    if (phone.replace(/\D/g, "").length < 10) {
+      setNewPlayerError("Enter a valid phone number");
+      return;
+    }
+
+    const playerAlreadyAdded = [...teamOnePlayers, ...teamTwoPlayers].some(
+      (player) => player.phone === phone
+    );
+
+    if (playerAlreadyAdded) {
+      setNewPlayerError("This phone number is already in a squad");
+      return;
+    }
+
+    addPlayerToTeam(id, activeTeam, {
+      id: `player-${Date.now()}`,
+      name,
+      phone,
+    });
+
+    setNewPlayerName("");
+    setNewPlayerPhone("");
+    setNewPlayerError("");
+    refreshMatch();
+  }
+
   function handleRemovePlayer(playerId: string) {
     if (playerId === "host") return;
     removePlayerFromTeam(id, activeTeam, playerId);
     refreshMatch();
-  }
-
-  async function handleCopyLink() {
-    try {
-      await navigator.clipboard.writeText(inviteLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
   }
 
   function handleContinue() {
@@ -142,15 +168,38 @@ export default function MatchPlayerSetup() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-dashed border-border p-4">
+          <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
             <div className="flex items-center gap-2 mb-2">
-              <Link2 size={16} className="text-muted-foreground" />
-              <p className="text-sm font-semibold">Invite new player</p>
+              <Phone size={16} className="text-muted-foreground" />
+              <p className="text-sm font-semibold">Add player by phone</p>
             </div>
-            <p className="text-xs text-muted-foreground break-all mb-3">{inviteLink}</p>
-            <Button type="button" variant="outline" className="w-full gap-2" onClick={handleCopyLink}>
-              <Copy size={16} />
-              {copied ? "Link copied!" : "Copy invite link"}
+
+            <div className="grid gap-3">
+              <Input
+                value={newPlayerName}
+                onChange={(event) => {
+                  setNewPlayerName(event.target.value);
+                  setNewPlayerError("");
+                }}
+                placeholder="Player name"
+              />
+              <Input
+                type="tel"
+                value={newPlayerPhone}
+                onChange={(event) => {
+                  setNewPlayerPhone(event.target.value);
+                  setNewPlayerError("");
+                }}
+                placeholder="Phone number"
+              />
+            </div>
+
+            {newPlayerError && (
+              <p className="text-xs font-medium text-destructive">{newPlayerError}</p>
+            )}
+
+            <Button type="button" variant="outline" className="w-full" onClick={handleAddNewPlayer}>
+              Add player
             </Button>
           </div>
 
@@ -171,6 +220,9 @@ export default function MatchPlayerSetup() {
                   >
                     <div>
                       <p className="font-medium text-sm">{player.name}</p>
+                      {player.phone && (
+                        <p className="text-xs text-muted-foreground">{player.phone}</p>
+                      )}
                       {player.isHost && (
                         <p className="text-xs text-green-600 font-semibold">Host</p>
                       )}

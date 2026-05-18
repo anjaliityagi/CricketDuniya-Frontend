@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import MainLayout from "../layouts/MainLayout";
+import ProtectedRoute from "../components/ProtectedRoute";
 
 import Home from "../pages/Home";
 import Landing from "../pages/Landing";
@@ -24,9 +25,11 @@ export default function AppRoutes() {
         <Route
           path="/home"
           element={
-            <MainLayout>
-              <Home />
-            </MainLayout>
+            <ProtectedRoute>
+              <MainLayout>
+                <Home />
+              </MainLayout>
+            </ProtectedRoute>
           }
         />
         <Route
@@ -40,9 +43,14 @@ export default function AppRoutes() {
         <Route
           path="/matches/create"
           element={
-            <MainLayout>
-              <CreateMatch />
-            </MainLayout>
+            <ProtectedRoute
+              redirectTo="/signup"
+              message="You need to be a registered user to create a match."
+            >
+              <MainLayout>
+                <CreateMatch />
+              </MainLayout>
+            </ProtectedRoute>
           }
         />
         <Route

@@ -22,22 +22,23 @@ function MatchCard({ match }: MatchCardProps) {
     <Link to={`/matches/${match.id}`} className="block">
       <Card
         className={cn(
-          "mb-4 rounded-2xl border border-border bg-card py-0 shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.99]",
-        isLive && "border-green-600/30 dark:border-green-500/40 shadow-green-600/5 ring-1 ring-green-600/10"
+          "mb-4 overflow-hidden rounded-2xl border border-border bg-card py-0 shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.99]",
+        isLive && "border-primary/35 shadow-primary/10 ring-1 ring-primary/15"
         )}
       >
+        {isLive && <div className="india-accent-strip h-1" />}
         <CardContent className="p-5 space-y-4">
           <div className="flex items-center gap-2">
             {isLive && (
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-600 opacity-60" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-600" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
               </span>
             )}
             <p
               className={cn(
                 "text-[11px] font-bold tracking-[0.14em] uppercase",
-                isLive ? "text-green-600" : "text-muted-foreground"
+                isLive ? "text-primary" : "text-muted-foreground"
               )}
             >
               {getStatusLabel(match.status)}

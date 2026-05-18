@@ -1,6 +1,7 @@
 export type MatchPlayer = {
   id: string;
   name: string;
+  phone?: string;
   isHost?: boolean;
 };
 
