@@ -1,7 +1,16 @@
 export type MatchPlayer = {
   id: string;
   name: string;
+  phone?: string;
   isHost?: boolean;
+};
+
+/** User-added names for the pool (optional common flag for shared/neutral picks). */
+export type MatchAdditionalPlayer = {
+  id: string;
+  name: string;
+  phone?: string;
+  isCommon?: boolean;
 };
 
 export type BatsmanLive = {
@@ -31,6 +40,22 @@ export type Match = {
   matchNote?: string;
   overs_per_side: number;
   venue?: string;
+  /** @deprecated Old flow: fixed squad size. New flow uses draftLocked instead. */
+  squadSize?: number;
+  /** Won toss to pick first in the player draft. */
+  draftFirstPicker?: "one" | "two";
+  /** User finished drafting (balanced squads). */
+  draftLocked?: boolean;
+  /** Custom / common players added for this match (merged into pick pool). */
+  additionalPlayers?: MatchAdditionalPlayer[];
+  captainOneId?: string;
+  captainTwoId?: string;
+  wicketKeeperOneId?: string;
+  wicketKeeperTwoId?: string;
+  umpireName?: string;
+  umpirePhone?: string;
+  scorerName?: string;
+  scorerPhone?: string;
   teamOnePlayers?: MatchPlayer[];
   teamTwoPlayers?: MatchPlayer[];
   tossWinner?: "one" | "two";

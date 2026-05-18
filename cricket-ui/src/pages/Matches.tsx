@@ -32,24 +32,24 @@ export default function Matches() {
   }, [activeFilter, allMatches]);
 
   return (
-    <div className="max-w-[430px] mx-auto min-h-[85vh] pb-28">
-      <div className="mb-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-2">
+    <div className="max-w-[430px] mx-auto pb-20">
+      <div className="mb-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-1">
           Cricket Duniya
         </p>
-        <h1 className="text-3xl font-black tracking-tight">Matches</h1>
-        <p className="text-muted-foreground text-sm mt-2 leading-relaxed">
+        <h1 className="text-2xl font-black tracking-tight">Matches</h1>
+        <p className="text-muted-foreground text-sm mt-1 leading-snug">
           Follow live scores and upcoming games
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-6">
+      <div className="grid grid-cols-3 gap-2 mb-3">
         <StatCard icon={Radio} label="Live" value={liveCount} active={liveCount > 0} />
         <StatCard icon={Calendar} label="Upcoming" value={upcomingCount} />
         <StatCard icon={Trophy} label="Done" value={completedCount} />
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 mb-5 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto pb-0.5 mb-2 scrollbar-hide">
         {filters.map((filter) => (
           <Button
             key={filter.id}
@@ -68,9 +68,9 @@ export default function Matches() {
       </div>
 
       {filteredMatches.length > 0 ? (
-        <div className="space-y-1">
+        <div className="space-y-0">
           {activeFilter === "all" && liveCount > 0 && (
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 px-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 px-1">
               Live now
             </p>
           )}
@@ -80,7 +80,7 @@ export default function Matches() {
                 index > 0 &&
                 match.status !== "live" &&
                 filteredMatches[index - 1]?.status === "live" && (
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 mt-6 px-1">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 mt-3 px-1">
                     More matches
                   </p>
                 )}
@@ -89,7 +89,7 @@ export default function Matches() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-16 px-6 rounded-2xl border border-dashed border-border bg-muted">
+        <div className="text-center py-8 px-4 rounded-2xl border border-dashed border-border bg-muted">
           <p className="font-semibold">No matches here</p>
           <p className="text-muted-foreground text-sm mt-2">
             Try another filter or create a new match
@@ -97,7 +97,7 @@ export default function Matches() {
         </div>
       )}
 
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 pb-6 pt-10 bg-gradient-to-t from-background via-background to-transparent pointer-events-none">
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-3 pb-4 pt-5 bg-gradient-to-t from-background via-background/95 to-transparent pointer-events-none">
         <Button asChild className="pointer-events-auto w-full h-12 rounded-2xl text-base font-bold shadow-xl gap-2">
           <Link to="/matches/create">
             <Plus size={20} strokeWidth={2.5} />
@@ -123,21 +123,21 @@ function StatCard({
   return (
     <div
       className={cn(
-        "rounded-xl border px-3 py-3 text-center transition-colors",
+        "rounded-xl border px-2 py-2 text-center transition-colors",
         active
           ? "border-green-600/25 dark:border-green-500/30 bg-green-50 dark:bg-green-950/40"
           : "border-border bg-muted"
       )}
     >
       <Icon
-        size={16}
+        size={15}
         className={cn(
-          "mx-auto mb-1.5",
+          "mx-auto mb-1",
           active ? "text-green-600" : "text-muted-foreground"
         )}
       />
-      <p className="text-lg font-black leading-none">{value}</p>
-      <p className="text-[10px] font-medium text-muted-foreground mt-1 uppercase tracking-wide">
+      <p className="text-base font-black leading-none">{value}</p>
+      <p className="text-[10px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wide">
         {label}
       </p>
     </div>

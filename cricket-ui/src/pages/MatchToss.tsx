@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
-import { getMatchById, startMatchWithToss } from "@/data/matchStore";
+import { canProceedToBatBowlToss, getMatchById, startMatchWithToss } from "@/data/matchStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,14 @@ export default function MatchToss() {
       navigate(`/matches/${id}`);
     }
   }, [match, id, navigate]);
+
+  useEffect(() => {
+    if (!id) return;
+    const m = getMatchById(id);
+    if (m && m.status === "scheduled" && !canProceedToBatBowlToss(m)) {
+      navigate(`/matches/${id}/setup`, { replace: true });
+    }
+  }, [id, navigate]);
 
   if (!match || !id) {
     return (
@@ -77,16 +85,16 @@ export default function MatchToss() {
   return (
     <div className="max-w-[430px] mx-auto pb-10">
       <Link
-        to={`/matches/${id}`}
+        to={`/matches/${id}/setup`}
         className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-6"
       >
         <ArrowLeft size={18} />
         Back
       </Link>
 
-      <h1 className="text-2xl font-bold mb-1">Toss</h1>
+      <h1 className="text-2xl font-bold mb-1">Toss — bat or bowl</h1>
       <p className="text-muted-foreground text-sm mb-6">
-        Tap the coin to decide who won the toss
+        After setup: flip the coin, then choose bat or bowl.
       </p>
 
       <div className="flex flex-col items-center mb-8">

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 import {
+  canProceedToBatBowlToss,
   endMatch,
   getMatchById,
   getOverDisplay,
@@ -70,6 +71,10 @@ export default function MatchDetail() {
 
   function handleStartMatch() {
     if (!id) return;
+    if (!canProceedToBatBowlToss(match)) {
+      navigate(`/matches/${id}/setup`);
+      return;
+    }
     navigate(`/matches/${id}/toss`);
   }
 
@@ -114,7 +119,12 @@ export default function MatchDetail() {
       <h1 className="text-xl font-bold mb-3">{title}</h1>
 
       {match.status === "scheduled" && (
-        <ScheduledView match={match} id={id!} onStart={handleStartMatch} />
+        <ScheduledView
+          match={match}
+          id={id!}
+          onStart={handleStartMatch}
+          setupComplete={canProceedToBatBowlToss(match)}
+        />
       )}
 
       {showScorecard && (
@@ -264,10 +274,12 @@ function ScheduledView({
   match,
   id,
   onStart,
+  setupComplete,
 }: {
   match: ReturnType<typeof getMatchById>;
   id: string;
   onStart: () => void;
+  setupComplete: boolean;
 }) {
   if (!match) return null;
 
@@ -289,12 +301,18 @@ function ScheduledView({
         </CardContent>
       </Card>
 
+      {!setupComplete && (
+        <p className="text-xs text-muted-foreground px-0.5">
+          Complete squad draft, captains, and officials, then bat/bowl toss.
+        </p>
+      )}
+
       <Button asChild variant="outline" className="w-full h-10">
-        <Link to={`/matches/${id}/setup`}>Edit Players</Link>
+        <Link to={`/matches/${id}/setup`}>Open setup</Link>
       </Button>
 
       <Button className="w-full h-10" onClick={onStart}>
-        Start Match
+        {setupComplete ? "Bat / bowl toss" : "Continue setup"}
       </Button>
     </div>
   );

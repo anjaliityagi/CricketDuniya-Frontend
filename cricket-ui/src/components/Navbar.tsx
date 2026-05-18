@@ -18,7 +18,7 @@ export default function Navbar() {
   return (
     <>
       <nav className="bg-background border-b border-border relative z-30">
-        <div className="max-w-[430px] mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-[430px] mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-xl font-extrabold tracking-tight">Cricket Duniya</h1>
 
           <Button

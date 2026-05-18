@@ -38,8 +38,8 @@ export default function CreateMatch() {
       teamOneScore: "—",
       teamTwoScore: "—",
       overs_per_side: oversNumber,
-      matchNote: `${oversNumber} ov - Add players`,
-      teamOnePlayers: [{ id: "host", name: "You", isHost: true }],
+      matchNote: `${oversNumber} ov — setup squads`,
+      teamOnePlayers: [],
       teamTwoPlayers: [],
     };
 
@@ -59,14 +59,14 @@ export default function CreateMatch() {
 
       <h1 className="text-2xl font-bold mb-1">Create Match</h1>
       <p className="text-muted-foreground text-sm mb-6">
-        Step 1 — enter team names and overs
+        Step 1 — team names and overs (squad size is up to you on the next screen)
       </p>
 
       <Card className="bg-card border-border">
         <CardContent className="p-5">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold mb-2">Team 1 Name</label>
+              <label className="block text-sm font-semibold mb-2">Team A</label>
               <Input
                 value={teamOneName}
                 onChange={(e) => setTeamOneName(e.target.value)}
@@ -75,7 +75,7 @@ export default function CreateMatch() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2">Team 2 Name</label>
+              <label className="block text-sm font-semibold mb-2">Team B</label>
               <Input
                 value={teamTwoName}
                 onChange={(e) => setTeamTwoName(e.target.value)}
@@ -84,7 +84,7 @@ export default function CreateMatch() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2">Overs</label>
+              <label className="block text-sm font-semibold mb-2">Overs per side</label>
               <Input
                 type="number"
                 value={overs}
@@ -94,10 +94,10 @@ export default function CreateMatch() {
               />
             </div>
 
-            {error && <p className="text-sm font-medium">{error}</p>}
+            {error && <p className="text-sm text-destructive font-medium">{error}</p>}
 
             <Button type="submit" className="w-full h-11">
-              Next — Add Players
+              Next — Setup match
             </Button>
           </form>
         </CardContent>

@@ -1,5 +1,6 @@
 import type { BatsmanLive, BowlerLive, Match, MatchPlayer } from "./mockMatches";
 import { mockMatches } from "./mockMatches";
+import { mockPlayers } from "./mockPlayers";
 
 const STORAGE_KEY = "cricket_matches";
 
@@ -406,21 +407,28 @@ export function endMatch(id: string) {
 export function addPlayerToTeam(
   matchId: string,
   team: "one" | "two",
-  player: { id: string; name: string; isHost?: boolean }
+  player: { id: string; name: string; isHost?: boolean; phone?: string }
 ) {
   const match = getMatchById(matchId);
   if (!match) return;
+
+  const entry: MatchPlayer = {
+    id: player.id,
+    name: player.name,
+    ...(player.phone ? { phone: player.phone } : {}),
+    ...(player.isHost ? { isHost: true } : {}),
+  };
 
   if (team === "one") {
     if (!match.teamOnePlayers) match.teamOnePlayers = [];
     const alreadyAdded = match.teamOnePlayers.some((p) => p.id === player.id);
     if (alreadyAdded) return;
-    match.teamOnePlayers.push(player);
+    match.teamOnePlayers.push(entry);
   } else {
     if (!match.teamTwoPlayers) match.teamTwoPlayers = [];
     const alreadyAdded = match.teamTwoPlayers.some((p) => p.id === player.id);
     if (alreadyAdded) return;
-    match.teamTwoPlayers.push(player);
+    match.teamTwoPlayers.push(entry);
   }
 
   updateMatch(match);
@@ -442,5 +450,205 @@ export function removePlayerFromTeam(
     match.teamTwoPlayers = match.teamTwoPlayers.filter((p) => p.id !== playerId);
   }
 
+  updateMatch(match);
+}
+
+// --- Setup: draft order, alternating draft, roles (captain / keepers / officials) ---
+
+export type PoolPlayerOption = {
+  id: string;
+  name: string;
+  phone?: string;
+  isCommon?: boolean;
+};
+
+function resolvePlayerForDraftPick(match: Match, playerId: string): MatchPlayer | null {
+  const inTeam = [...(match.teamOnePlayers || []), ...(match.teamTwoPlayers || [])].some(
+    (p) => p.id === playerId
+  );
+  if (inTeam) return null;
+
+  const fromMock = mockPlayers.find((p) => p.id === playerId);
+  if (fromMock) return { id: fromMock.id, name: fromMock.name };
+
+  const extra = match.additionalPlayers?.find((p) => p.id === playerId);
+  if (extra) {
+    if (extra.isCommon) return null;
+    return { id: extra.id, name: extra.name, ...(extra.phone ? { phone: extra.phone } : {}) };
+  }
+
+  return null;
+}
+
+/** Everyone not yet drafted (mock list + match-specific additions). Common players are excluded — they are not on either team. */
+export function getAvailablePoolPlayers(match: Match): PoolPlayerOption[] {
+  const taken = new Set(
+    [...(match.teamOnePlayers || []), ...(match.teamTwoPlayers || [])].map((p) => p.id)
+  );
+
+  const fromMock: PoolPlayerOption[] = mockPlayers
+    .filter((p) => !taken.has(p.id))
+    .map((p) => ({ id: p.id, name: p.name }));
+
+  const fromExtra: PoolPlayerOption[] = (match.additionalPlayers || [])
+    .filter((p) => !taken.has(p.id) && !p.isCommon)
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      phone: p.phone,
+      isCommon: p.isCommon,
+    }));
+
+  return [...fromMock, ...fromExtra];
+}
+
+export function addMatchPlayerEntry(
+  matchId: string,
+  opts: { name: string; phone: string; isCommon: boolean }
+): { ok: boolean; message?: string; newId?: string } {
+  const name = opts.name.trim();
+  const phone = opts.phone.replace(/\D/g, "");
+  if (name.length < 2) return { ok: false, message: "Enter a name (at least 2 characters)." };
+  if (phone.length < 10) return { ok: false, message: "Enter a valid phone number (min 10 digits)." };
+
+  const match = getMatchById(matchId);
+  if (!match || match.status !== "scheduled") return { ok: false, message: "Match not found." };
+  if (match.draftLocked) return { ok: false, message: "Draft is already locked." };
+
+  if (!match.additionalPlayers) match.additionalPlayers = [];
+  const id = `mp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  match.additionalPlayers.push({
+    id,
+    name,
+    phone,
+    isCommon: opts.isCommon,
+  });
+  updateMatch(match);
+  return { ok: true, newId: id };
+}
+
+export function getDraftTurnTeam(match: Match): "one" | "two" | null {
+  if (!match.draftFirstPicker) return null;
+  if (match.draftLocked) return null;
+
+  const n1 = match.teamOnePlayers?.length ?? 0;
+  const n2 = match.teamTwoPlayers?.length ?? 0;
+  const cap = match.squadSize;
+  if (cap && cap > 0 && n1 >= cap && n2 >= cap) return null;
+
+  const total = n1 + n2;
+  const first = match.draftFirstPicker;
+  return total % 2 === 0 ? first : first === "one" ? "two" : "one";
+}
+
+/** Draft phase done: explicit lock, or legacy fixed squad size filled. */
+export function isDraftFinished(match: Match): boolean {
+  if (match.draftLocked) return true;
+  const cap = match.squadSize;
+  if (cap && cap > 0) {
+    const n1 = match.teamOnePlayers?.length ?? 0;
+    const n2 = match.teamTwoPlayers?.length ?? 0;
+    return n1 >= cap && n2 >= cap;
+  }
+  return false;
+}
+
+/** @deprecated use isDraftFinished */
+export function isSquadComplete(match: Match): boolean {
+  return isDraftFinished(match);
+}
+
+export function tryLockDraft(matchId: string): { ok: boolean; message?: string } {
+  const match = getMatchById(matchId);
+  if (!match || match.status !== "scheduled") return { ok: false, message: "Match not found." };
+
+  const n1 = match.teamOnePlayers?.length ?? 0;
+  const n2 = match.teamTwoPlayers?.length ?? 0;
+
+  if (n1 < 2 || n2 < 2) {
+    return { ok: false, message: "Need at least 2 players on each team before locking." };
+  }
+  if (n1 !== n2) {
+    return { ok: false, message: "Both teams must have the same number of players. Keep drafting." };
+  }
+
+  match.draftLocked = true;
+  match.matchNote = `${match.overs_per_side} ov — assign roles`;
+  updateMatch(match);
+  return { ok: true };
+}
+
+export function isRolesComplete(match: Match): boolean {
+  return !!(
+    match.captainOneId &&
+    match.captainTwoId &&
+    match.wicketKeeperOneId &&
+    match.wicketKeeperTwoId &&
+    match.umpireName?.trim() &&
+    match.umpirePhone?.trim() &&
+    match.scorerName?.trim() &&
+    match.scorerPhone?.trim()
+  );
+}
+
+export function canProceedToBatBowlToss(match: Match): boolean {
+  return !!match.draftFirstPicker && isDraftFinished(match) && isRolesComplete(match);
+}
+
+export function setDraftFirstPicker(matchId: string, team: "one" | "two") {
+  const match = getMatchById(matchId);
+  if (!match || match.status !== "scheduled") return;
+
+  match.draftFirstPicker = team;
+  match.matchNote = `${match.overs_per_side} ov — pick squads (draft)`;
+  updateMatch(match);
+}
+
+export function addPlayerDraftPick(matchId: string, playerId: string) {
+  const match = getMatchById(matchId);
+  if (!match || match.status !== "scheduled") return;
+  if (match.draftLocked) return;
+
+  const resolved = resolvePlayerForDraftPick(match, playerId);
+  if (!resolved) return;
+
+  const turn = getDraftTurnTeam(match);
+  if (!turn) return;
+
+  const cap = match.squadSize;
+  const n1 = match.teamOnePlayers?.length ?? 0;
+  const n2 = match.teamTwoPlayers?.length ?? 0;
+  if (cap && cap > 0) {
+    if (turn === "one" && n1 >= cap) return;
+    if (turn === "two" && n2 >= cap) return;
+  }
+
+  addPlayerToTeam(matchId, turn, resolved);
+}
+
+export type MatchRolesPayload = {
+  captainOneId: string;
+  captainTwoId: string;
+  wicketKeeperOneId: string;
+  wicketKeeperTwoId: string;
+  umpireName: string;
+  umpirePhone: string;
+  scorerName: string;
+  scorerPhone: string;
+};
+
+export function setMatchRoles(matchId: string, roles: MatchRolesPayload) {
+  const match = getMatchById(matchId);
+  if (!match || match.status !== "scheduled") return;
+
+  match.captainOneId = roles.captainOneId;
+  match.captainTwoId = roles.captainTwoId;
+  match.wicketKeeperOneId = roles.wicketKeeperOneId;
+  match.wicketKeeperTwoId = roles.wicketKeeperTwoId;
+  match.umpireName = roles.umpireName.trim();
+  match.umpirePhone = roles.umpirePhone.trim();
+  match.scorerName = roles.scorerName.trim();
+  match.scorerPhone = roles.scorerPhone.trim();
+  match.matchNote = `${match.overs_per_side} ov — bat/bowl toss`;
   updateMatch(match);
 }
