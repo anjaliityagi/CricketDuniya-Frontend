@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { canProceedToBatBowlToss, getMatchById, startMatchWithToss } from "@/data/matchStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import TossCoin3D from "@/components/TossCoin3D";
 import { cn } from "@/lib/utils";
 
 type TossWinner = "one" | "two" | "";
@@ -18,6 +19,8 @@ export default function MatchToss() {
   const [tossWinner, setTossWinner] = useState<TossWinner>("");
   const [tossDecision, setTossDecision] = useState<TossDecision>("");
   const [isFlipping, setIsFlipping] = useState(false);
+  const [flipNonce, setFlipNonce] = useState(0);
+  const [flipTarget, setFlipTarget] = useState<"one" | "two" | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -52,19 +55,25 @@ export default function MatchToss() {
   const winnerName =
     tossWinner === "one" ? match.teamOneName : tossWinner === "two" ? match.teamTwoName : "";
 
+  const abbrOne = match.teamOneName.trim().slice(0, 2).toUpperCase() || "T1";
+  const abbrTwo = match.teamTwoName.trim().slice(0, 2).toUpperCase() || "T2";
+
   function handleFlipCoin() {
     if (isFlipping) return;
 
+    const winner = Math.random() < 0.5 ? "one" : "two";
+    setFlipTarget(winner);
+    setFlipNonce((n) => n + 1);
     setIsFlipping(true);
     setTossWinner("");
     setTossDecision("");
     setError("");
 
     setTimeout(() => {
-      const randomWinner = Math.random() < 0.5 ? "one" : "two";
-      setTossWinner(randomWinner);
+      setTossWinner(winner);
       setIsFlipping(false);
-    }, 1200);
+      setFlipTarget(null);
+    }, 1550);
   }
 
   function handleConfirm() {
@@ -102,26 +111,28 @@ export default function MatchToss() {
           type="button"
           onClick={handleFlipCoin}
           disabled={isFlipping}
-          className="disabled:opacity-80"
+          className="group relative touch-manipulation disabled:opacity-90"
+          aria-label="Flip toss coin"
         >
-          <div
-            className={cn(
-              "w-28 h-28 rounded-full border-4 border-yellow-500 bg-gradient-to-br from-yellow-300 to-yellow-600 shadow-lg flex items-center justify-center",
-              isFlipping && "animate-spin"
-            )}
-          >
-            <span className="text-2xl font-black text-yellow-900">CD</span>
-          </div>
+          <TossCoin3D
+            abbrOne={abbrOne}
+            abbrTwo={abbrTwo}
+            flipNonce={flipNonce}
+            isFlipping={isFlipping}
+            flipTarget={flipTarget}
+            landedWinner={tossWinner}
+          />
+          {!isFlipping ? (
+            <p className="mt-2 text-center text-xs font-medium text-muted-foreground">Tap to flip</p>
+          ) : null}
         </button>
 
-        <p className="text-sm text-muted-foreground mt-4">
-          {isFlipping ? "Flipping..." : tossWinner ? "Toss result is ready" : "Tap coin to flip"}
+        <p className="text-sm text-muted-foreground mt-4 min-h-[1.25rem] text-center">
+          {isFlipping ? "Flipping…" : tossWinner ? "Toss result is ready" : "Tap the coin to flip"}
         </p>
 
         {tossWinner && !isFlipping && (
-          <p className="text-base font-bold mt-2 text-green-600">
-            {winnerName} won the toss!
-          </p>
+          <p className="text-base font-bold mt-2 text-green-600">{winnerName} won the toss!</p>
         )}
       </div>
 

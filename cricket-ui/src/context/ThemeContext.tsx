@@ -22,6 +22,16 @@ function applyTheme(theme: Theme) {
   root.classList.remove("light", "dark");
   root.classList.add(theme);
   localStorage.setItem("theme", theme);
+
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) {
+    metaTheme.setAttribute("content", theme === "dark" ? "#071a3d" : "#0b5ed7");
+  }
+
+  const appleStatus = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+  if (appleStatus) {
+    appleStatus.setAttribute("content", theme === "dark" ? "black-translucent" : "default");
+  }
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

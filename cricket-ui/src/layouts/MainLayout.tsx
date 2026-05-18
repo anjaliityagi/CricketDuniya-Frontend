@@ -6,9 +6,9 @@ type MainLayoutProps = {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="team-india-surface flex min-h-[100dvh] min-h-[100svh] flex-col text-foreground">
       <Navbar />
-      <main className="px-3 py-2 pb-14">{children}</main>
+      <main className="flex-1 px-3 py-3 pb-[max(5rem,env(safe-area-inset-bottom))] pt-1">{children}</main>
     </div>
   );
 }

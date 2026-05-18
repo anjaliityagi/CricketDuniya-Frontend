@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -26,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import TossCoin3D from "@/components/TossCoin3D";
 import { cn } from "@/lib/utils";
 import type { MatchAdditionalPlayer, MatchPlayer } from "@/data/mockMatches";
 
@@ -36,6 +37,8 @@ export default function MatchPlayerSetup() {
 
   const [orderTossWinner, setOrderTossWinner] = useState<"" | "one" | "two">("");
   const [orderFlipping, setOrderFlipping] = useState(false);
+  const [orderFlipNonce, setOrderFlipNonce] = useState(0);
+  const [orderFlipTarget, setOrderFlipTarget] = useState<"one" | "two" | null>(null);
 
   const [rolesError, setRolesError] = useState("");
   const [poolError, setPoolError] = useState("");
@@ -145,13 +148,16 @@ export default function MatchPlayerSetup() {
 
   function handleFlipDraftOrder() {
     if (orderFlipping) return;
+    const w = Math.random() < 0.5 ? "one" : "two";
+    setOrderFlipTarget(w);
+    setOrderFlipNonce((n) => n + 1);
     setOrderFlipping(true);
     setOrderTossWinner("");
     setTimeout(() => {
-      const w = Math.random() < 0.5 ? "one" : "two";
       setOrderTossWinner(w);
       setOrderFlipping(false);
-    }, 900);
+      setOrderFlipTarget(null);
+    }, 1550);
   }
 
   function handleConfirmDraftOrder() {
@@ -263,6 +269,9 @@ export default function MatchPlayerSetup() {
   const winnerOrderLabel =
     orderTossWinner === "one" ? match.teamOneName : orderTossWinner === "two" ? match.teamTwoName : "";
 
+  const orderAbbrOne = match.teamOneName.trim().slice(0, 2).toUpperCase() || "T1";
+  const orderAbbrTwo = match.teamTwoName.trim().slice(0, 2).toUpperCase() || "T2";
+
   const setupStep: 0 | 1 | 2 | 3 =
     phases === "order_toss" ? 0 : phases === "draft" ? 1 : phases === "roles" ? 2 : 3;
 
@@ -312,19 +321,27 @@ export default function MatchPlayerSetup() {
                 type="button"
                 onClick={handleFlipDraftOrder}
                 disabled={orderFlipping}
-                className="disabled:opacity-70"
+                className="group touch-manipulation disabled:opacity-90"
+                aria-label="Flip coin for draft order"
               >
-                <div
-                  className={cn(
-                    "w-24 h-24 rounded-full border-4 border-yellow-500 bg-gradient-to-br from-yellow-300 to-yellow-600 shadow-lg flex items-center justify-center",
-                    orderFlipping && "animate-spin"
-                  )}
-                >
-                  <span className="text-lg font-black text-yellow-900">CD</span>
-                </div>
+                <TossCoin3D
+                  abbrOne={orderAbbrOne}
+                  abbrTwo={orderAbbrTwo}
+                  flipNonce={orderFlipNonce}
+                  isFlipping={orderFlipping}
+                  flipTarget={orderFlipTarget}
+                  landedWinner={orderTossWinner}
+                />
+                {!orderFlipping ? (
+                  <p className="mt-2 text-center text-xs font-medium text-muted-foreground">Tap to flip</p>
+                ) : null}
               </button>
-              <p className="text-xs text-muted-foreground mt-3">
-                {orderFlipping ? "Flipping…" : orderTossWinner ? "Result ready" : "Tap coin to flip"}
+              <p className="text-xs text-muted-foreground mt-3 min-h-[1.25rem] text-center">
+                {orderFlipping
+                  ? "Flipping…"
+                  : orderTossWinner
+                    ? "Result ready"
+                    : "Tap the coin to flip"}
               </p>
               {orderTossWinner && !orderFlipping && (
                 <p className="text-sm font-bold text-green-600 mt-2">{winnerOrderLabel} picks first</p>

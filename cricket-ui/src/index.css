@@ -30,46 +30,46 @@
 
 :root,
 .light {
-  --radius: 0.75rem;
-  --background: #ffffff;
-  --foreground: #000000;
-  --card: #f5f5f5;
-  --card-foreground: #000000;
+  --radius: 0.65rem;
+  --background: #f3f7ff;
+  --foreground: #071a3d;
+  --card: #ffffff;
+  --card-foreground: #071a3d;
   --popover: #ffffff;
-  --popover-foreground: #000000;
-  --primary: #000000;
+  --popover-foreground: #071a3d;
+  --primary: #0b5ed7;
   --primary-foreground: #ffffff;
-  --secondary: #f5f5f5;
-  --secondary-foreground: #000000;
-  --muted: #f5f5f5;
-  --muted-foreground: #525252;
-  --accent: #f5f5f5;
-  --accent-foreground: #000000;
-  --destructive: #000000;
-  --border: #e5e5e5;
-  --input: #e5e5e5;
-  --ring: #000000;
+  --secondary: #e7efff;
+  --secondary-foreground: #0a3477;
+  --muted: #eaf1ff;
+  --muted-foreground: #49617f;
+  --accent: #fff1df;
+  --accent-foreground: #8a3f00;
+  --destructive: #d92d20;
+  --border: #c8d8f4;
+  --input: #b9ccec;
+  --ring: #ff8a00;
 }
 
 .dark {
-  --background: #1a1a1a;
-  --foreground: #f5f5f5;
-  --card: #262626;
-  --card-foreground: #f5f5f5;
-  --popover: #262626;
-  --popover-foreground: #f5f5f5;
-  --primary: #f5f5f5;
-  --primary-foreground: #1a1a1a;
-  --secondary: #2e2e2e;
-  --secondary-foreground: #f5f5f5;
-  --muted: #2e2e2e;
-  --muted-foreground: #a3a3a3;
-  --accent: #2e2e2e;
-  --accent-foreground: #f5f5f5;
-  --destructive: #f5f5f5;
-  --border: #404040;
-  --input: #404040;
-  --ring: #d4d4d4;
+  --background: #071a3d;
+  --foreground: #f7fbff;
+  --card: #0d2a60;
+  --card-foreground: #f7fbff;
+  --popover: #0d2a60;
+  --popover-foreground: #f7fbff;
+  --primary: #ff8a00;
+  --primary-foreground: #081735;
+  --secondary: #103a80;
+  --secondary-foreground: #f7fbff;
+  --muted: #123770;
+  --muted-foreground: #b8c8e8;
+  --accent: #0f7b55;
+  --accent-foreground: #effff8;
+  --destructive: #ff5c5c;
+  --border: #244d91;
+  --input: #315b9e;
+  --ring: #ffb13b;
 }
 
 @layer base {
@@ -81,5 +81,8 @@
     @apply bg-background text-foreground antialiased;
     margin: 0;
     font-family: system-ui, -apple-system, sans-serif;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--background) 92%, #0b5ed7 8%) 0%, var(--background) 42%),
+      var(--background);
   }
 }
