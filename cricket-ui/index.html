@@ -22,7 +22,7 @@
         var theme = saved === "dark" || saved === "light" ? saved : "light";
         document.documentElement.classList.add(theme);
         var meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute("content", theme === "dark" ? "#071a3d" : "#0b5ed7");
+        if (meta) meta.setAttribute("content", theme === "dark" ? "#0c0f18" : "#0b5ed7");
         var apple = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
         if (apple) apple.setAttribute("content", theme === "dark" ? "black-translucent" : "default");
       })();

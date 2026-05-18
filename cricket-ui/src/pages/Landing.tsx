@@ -76,7 +76,7 @@ export default function Landing() {
                   <div className="text-green-400 font-black text-3xl">VS</div>
 
                   <div>
-                    <div className="w-16 h-16 mx-auto rounded-full bg-yellow-500/20 mb-3" />
+                    <div className="w-16 h-16 mx-auto rounded-full bg-blue-500/20 mb-3" />
                     <p className="font-bold">AUS</p>
                     <p className="text-slate-400 mt-2">Yet to Bat</p>
                   </div>

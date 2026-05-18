@@ -6,8 +6,7 @@ import {
   Goal,
   HardHat,
   Lock,
-  UserPlus,
-  Users,
+  Plus,
 } from "lucide-react";
 
 import {
@@ -27,8 +26,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import TossCoin3D from "@/components/TossCoin3D";
+import DraftPoolPicker from "@/components/DraftPoolPicker";
 import { cn } from "@/lib/utils";
-import type { MatchAdditionalPlayer, MatchPlayer } from "@/data/mockMatches";
+import type { MatchPlayer } from "@/data/mockMatches";
 
 export default function MatchPlayerSetup() {
   const { id } = useParams();
@@ -47,10 +47,6 @@ export default function MatchPlayerSetup() {
 
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
-
-  const [commonName, setCommonName] = useState("");
-  const [commonPhone, setCommonPhone] = useState("");
-  const [commonError, setCommonError] = useState("");
 
   const [pickFlash, setPickFlash] = useState<string | null>(null);
   const pickFlashClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -131,9 +127,6 @@ export default function MatchPlayerSetup() {
   const rolesDone = isRolesComplete(match);
   const readyForBatBowlToss = canProceedToBatBowlToss(match);
 
-  const commonEntries =
-    match.additionalPlayers?.filter((p) => p.isCommon) ?? ([] as MatchAdditionalPlayer[]);
-
   const phases:
     | "order_toss"
     | "draft"
@@ -206,24 +199,6 @@ export default function MatchPlayerSetup() {
     setSelectedPlayerId("");
   }
 
-  function handleAddCommonPlayer(e: React.FormEvent) {
-    e.preventDefault();
-    if (!id) return;
-    setCommonError("");
-    const r = addMatchPlayerEntry(id, {
-      name: commonName,
-      phone: commonPhone,
-      isCommon: true,
-    });
-    if (!r.ok) {
-      setCommonError(r.message ?? "Could not add");
-      return;
-    }
-    refreshMatch();
-    setCommonName("");
-    setCommonPhone("");
-  }
-
   function handleLockDraft() {
     if (!id) return;
     setLockError("");
@@ -279,8 +254,7 @@ export default function MatchPlayerSetup() {
     <div
       className={cn(
         "max-w-[430px] mx-auto pb-6",
-        (phases === "draft" || phases === "roles") &&
-          "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]"
+        phases === "roles" && "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]"
       )}
     >
       {phases !== "draft" && phases !== "roles" && (
@@ -355,237 +329,181 @@ export default function MatchPlayerSetup() {
 
       {phases === "draft" && (
         <>
-          <div
-            className={cn(
-              "rounded-2xl border-2 p-3 mb-2 transition-colors duration-300 touch-manipulation",
-              draftTurn === "one" &&
-                "border-green-600/50 bg-gradient-to-br from-green-50/95 to-transparent dark:from-green-950/40",
-              draftTurn === "two" &&
-                "border-sky-600/50 bg-gradient-to-br from-sky-50/95 to-transparent dark:from-sky-950/35",
-              !draftTurn && "border-border bg-muted/25"
-            )}
-          >
-            <div className="flex items-start justify-between gap-2 min-w-0">
-              <div className="flex min-w-0 flex-1 items-center gap-2">
-                {draftTurn ? (
-                  <span
-                    className={cn(
-                      "inline-flex h-2.5 w-2.5 shrink-0 animate-pulse rounded-full",
-                      draftTurn === "one" ? "bg-green-500" : "bg-sky-500"
-                    )}
-                  />
-                ) : null}
-                <div className="min-w-0">
-                  <p
-                    className={cn(
-                      "truncate text-base font-black leading-tight",
-                      draftTurn === "one" && "text-green-900 dark:text-green-300",
-                      draftTurn === "two" && "text-sky-950 dark:text-sky-200",
-                      !draftTurn && "text-muted-foreground"
-                    )}
-                  >
-                    {draftTurn === "one"
-                      ? match.teamOneName
-                      : draftTurn === "two"
-                        ? match.teamTwoName
-                        : "—"}
-                  </p>
-                  <p className="text-[10px] font-semibold text-muted-foreground">
-                    {draftTurn ? "Picks now" : "Same count — lock below"}
-                  </p>
+          <div className="relative isolate mb-2 overflow-visible rounded-[1.35rem] border border-primary/25 bg-card/95 shadow-[inset_0_1px_0_rgb(255_255_255/0.05),0_12px_40px_-8px_rgb(59_130_246/0.35)] backdrop-blur-md dark:border-cyan-500/20 dark:shadow-[inset_0_1px_0_rgb(255_255_255/0.04),0_16px_48px_-6px_rgb(0_0_0/0.55)]">
+            <div
+              className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
+              aria-hidden
+            >
+              <div className="absolute left-5 right-5 top-0 h-px bg-gradient-to-r from-transparent via-primary/65 to-transparent" />
+              <div className="absolute inset-y-12 -left-[45%] w-[55%] bg-gradient-to-r from-transparent via-sky-400/12 to-transparent blur-md motion-safe:animate-draft-shimmer-scan" />
+            </div>
+
+            <div className="relative z-[1] p-4">
+              <div className="mb-4 flex flex-col items-center gap-1">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">
+                  {draftTurn ? "Your turn rotates" : "Balanced"}
+                </p>
+                <p className="text-[11px] font-semibold leading-tight text-foreground">
+                  Same headcount → <span className="text-primary">lock</span> to continue
+                </p>
+              </div>
+
+              <div className="mb-6 flex items-start gap-2">
+                <DraftTeamOrb
+                  label={match.teamOneName}
+                  shortLabel={teamAbbr(match.teamOneName, 3)}
+                  side="one"
+                  count={n1}
+                  isTurn={draftTurn === "one"}
+                />
+                <div className="flex min-w-[52px] flex-col items-center justify-center px-1 pt-7 text-center">
+                  <span className="rounded-md border border-primary/35 bg-muted/40 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-primary">
+                    vs
+                  </span>
+                  <span className="mt-2 text-xl font-black tabular-nums leading-none tracking-tighter text-foreground">
+                    {n1}
+                    <span className="mx-1 text-muted-foreground">∶</span>
+                    {n2}
+                  </span>
                 </div>
+                <DraftTeamOrb
+                  label={match.teamTwoName}
+                  shortLabel={teamAbbr(match.teamTwoName, 3)}
+                  side="two"
+                  count={n2}
+                  isTurn={draftTurn === "two"}
+                />
               </div>
-              <div className="flex shrink-0 items-center gap-1.5 font-black tabular-nums">
-                <span
-                  className={cn(
-                    "rounded-lg px-2 py-1 text-xs",
-                    draftTurn === "one"
-                      ? "bg-green-600/15 text-green-900 dark:text-green-300"
-                      : "text-muted-foreground"
-                  )}
+
+              {pickFlash ? (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="animate-draft-pick-banner mb-4 rounded-xl border border-cyan-400/55 bg-gradient-to-br from-emerald-600/95 via-teal-600/90 to-blue-700/95 px-3 py-2.5 text-center text-[13px] font-black uppercase tracking-wide text-white shadow-[0_0_28px_-4px_rgb(34_211_238/0.65)] motion-safe:active:scale-[0.995]"
                 >
-                  {teamAbbr(match.teamOneName)} {n1}
-                </span>
-                <span className="text-[10px] text-muted-foreground">·</span>
-                <span
-                  className={cn(
-                    "rounded-lg px-2 py-1 text-xs",
-                    draftTurn === "two"
-                      ? "bg-sky-600/15 text-sky-950 dark:text-sky-200"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  {teamAbbr(match.teamTwoName)} {n2}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mb-2 rounded-2xl border border-border bg-card p-3 shadow-sm">
-            {pickFlash ? (
-              <div
-                role="status"
-                aria-live="polite"
-                className="mb-3 rounded-xl bg-green-600 px-3 py-2.5 text-center text-sm font-black text-white shadow-md motion-safe:transition-transform motion-safe:duration-300 motion-safe:active:scale-[0.99]"
-              >
-                {pickFlash}
-              </div>
-            ) : null}
-
-            {availablePlayers.length === 0 ? (
-              <p className="text-center text-xs text-muted-foreground py-4 leading-snug">
-                No one left in the pool — open below or lock.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-2.5">
-                <select
-                  value={selectedPlayerId}
-                  onChange={(e) => setSelectedPlayerId(e.target.value)}
-                  disabled={!draftTurn}
-                  className="min-h-12 w-full touch-manipulation rounded-xl border border-input bg-background px-3 text-base disabled:opacity-50"
-                >
-                  <option value="">Tap to choose…</option>
-                  {availablePlayers.map((player) => (
-                    <option key={player.id} value={player.id}>
-                      {player.name}
-                      {player.phone ? ` · ${player.phone}` : ""}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  type="button"
-                  className={cn(
-                    "h-12 w-full text-base font-black touch-manipulation transition-[transform,box-shadow] active:scale-[0.98]",
-                    Boolean(selectedPlayerId && draftTurn) &&
-                      "shadow-lg shadow-primary/25 ring-2 ring-primary/40 ring-offset-2 ring-offset-background"
-                  )}
-                  disabled={!draftTurn || !selectedPlayerId}
-                  onClick={handleAddFromDropdown}
-                >
-                  Add to squad
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <div className="mb-2 rounded-xl border border-border bg-muted/15 p-2">
-            <p className="mb-1.5 px-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-              Squads · {n1 + n2} picked
-            </p>
-            <div className="grid grid-cols-2 gap-1.5">
-              <DraftSquadStrip variant="green" title={match.teamOneName} players={teamOnePlayers} />
-              <DraftSquadStrip variant="sky" title={match.teamTwoName} players={teamTwoPlayers} />
-            </div>
-          </div>
-
-          <div className="mb-2 rounded-xl border border-dashed border-border bg-muted/20 p-2.5">
-            <p className="mb-2 text-xs font-bold">New player — not in list</p>
-            <form onSubmit={handleAddNewAndAssign} className="space-y-1.5">
-              <Input
-                placeholder="Full name"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="h-10 rounded-lg bg-background text-sm"
-              />
-              <Input
-                type="tel"
-                inputMode="tel"
-                placeholder="Phone"
-                value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value)}
-                className="h-10 rounded-lg bg-background text-sm"
-              />
-              {poolError && <p className="text-[11px] text-destructive">{poolError}</p>}
-              <Button type="submit" variant="secondary" className="w-full h-10 rounded-lg text-xs font-bold">
-                Add &amp; draft to active team
-              </Button>
-            </form>
-          </div>
-
-          <div className="mb-2 rounded-xl border border-border bg-muted/20 p-2.5">
-            <p className="mb-1.5 flex items-center gap-1.5 text-xs font-bold">
-              <Users className="h-3.5 w-3.5 text-muted-foreground" />
-              Common players
-              {commonEntries.length > 0 ? (
-                <span className="tabular-nums font-semibold text-muted-foreground">({commonEntries.length})</span>
+                  {pickFlash}
+                </div>
               ) : null}
-            </p>
-            <p className="text-[10px] text-muted-foreground mb-2 leading-snug">Match contacts only — not on A/B.</p>
 
-            {commonEntries.length > 0 && (
-              <ul className="mb-2 flex flex-wrap gap-1.5">
-                {commonEntries.map((p) => (
-                  <li
-                    key={p.id}
-                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] font-medium"
+              <section className="mb-6 space-y-2">
+                <p className="flex items-center gap-2 border-l-2 border-primary/60 pl-2 text-[10px] font-black uppercase tracking-[0.24em] text-primary/95">
+                  Pick from pool
+                </p>
+                {availablePlayers.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/20 px-3 py-3 text-center text-xs font-medium leading-snug text-muted-foreground">
+                    Pool is empty. Add someone new below — or lock if both squads match.
+                  </p>
+                ) : (
+                  <div className="flex gap-2">
+                    <DraftPoolPicker
+                      players={availablePlayers}
+                      value={selectedPlayerId}
+                      onChange={setSelectedPlayerId}
+                      disabled={!draftTurn}
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      disabled={!draftTurn || !selectedPlayerId}
+                      onClick={handleAddFromDropdown}
+                      aria-label="Add selected player to current team"
+                      className={cn(
+                        "size-12 shrink-0 rounded-xl shadow-lg shadow-primary/20 transition-[transform] active:scale-95 touch-manipulation",
+                        Boolean(selectedPlayerId && draftTurn) &&
+                          "ring-2 ring-primary/55 ring-offset-2 ring-offset-background dark:ring-offset-[#151a29]",
+                      )}
+                    >
+                      <Plus className="size-6" strokeWidth={2.5} />
+                    </Button>
+                  </div>
+                )}
+              </section>
+
+              <section className="relative mb-6 overflow-hidden rounded-2xl border border-violet-500/15 bg-gradient-to-br from-muted/35 via-muted/15 to-transparent p-4 dark:from-muted/25">
+                <p className="mb-3 flex items-center gap-2 border-l-2 border-violet-500/50 pl-2 text-[10px] font-black uppercase tracking-[0.26em] text-muted-foreground">
+                  New recruit
+                </p>
+                <form onSubmit={handleAddNewAndAssign} className="space-y-2.5">
+                  <Input
+                    placeholder="Full name"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    disabled={!draftTurn}
+                    className="h-11 rounded-xl border-blue-400/25 bg-background/90 text-sm font-medium"
+                  />
+                  <Input
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="Phone (10+ digits)"
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    disabled={!draftTurn}
+                    className="h-11 rounded-xl border-blue-400/25 bg-background/90 text-sm font-medium"
+                  />
+                  {poolError ? (
+                    <p className="text-[11px] font-semibold leading-snug text-destructive">{poolError}</p>
+                  ) : null}
+                  <div className="flex justify-end pt-1">
+                    <Button
+                      type="submit"
+                      size="icon"
+                      variant="secondary"
+                      disabled={!draftTurn}
+                      aria-label="Add new player and assign to drafting team"
+                      className="size-11 rounded-full border border-primary/20 bg-secondary/90 shadow-inner transition-[transform] active:scale-95 disabled:opacity-40"
+                    >
+                      <Plus className="size-5" strokeWidth={2.5} />
+                    </Button>
+                  </div>
+                </form>
+              </section>
+
+              <section>
+                <p className="mb-2 border-l-2 border-emerald-500/45 pl-2 text-[10px] font-black uppercase tracking-[0.24em] text-muted-foreground">
+                  Squads · <span className="tabular-nums">{n1 + n2}</span> drafted
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <DraftSquadStrip variant="green" title={match.teamOneName} players={teamOnePlayers} />
+                  <DraftSquadStrip variant="sky" title={match.teamTwoName} players={teamTwoPlayers} />
+                </div>
+              </section>
+
+              <footer className="mt-5 border-t border-border/60 bg-muted/[0.12] pb-2 pt-4 dark:bg-muted/10">
+                {lockError ? (
+                  <p className="mb-3 px-1 text-center text-[11px] font-semibold leading-snug text-destructive">{lockError}</p>
+                ) : (
+                  <p className="mb-3 px-1 text-center text-[10px] leading-snug text-muted-foreground">
+                    {n1 !== n2
+                      ? `Counts ${Math.min(n1, n2)}∶${Math.max(n1, n2)} · keep alternating picks`
+                      : n1 >= 2
+                        ? "Both squads match — lock to assign roles."
+                        : "Draft at least 2 per side, then lock when counts match."}
+                  </p>
+                )}
+                <div className="flex gap-2.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-12 w-[32%] shrink-0 rounded-xl border-primary/25 bg-background/70 px-2 text-xs font-bold shadow-inner touch-manipulation active:scale-[0.98] transition-transform"
+                    asChild
                   >
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[9px] font-bold">
-                      {playerInitials(p.name)}
-                    </span>
-                    <span className="truncate max-w-[140px]">
-                      {p.name}
-                      {p.phone ? <span className="text-muted-foreground"> · {p.phone}</span> : null}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <form onSubmit={handleAddCommonPlayer} className="space-y-1.5">
-              <Input
-                placeholder="Name"
-                value={commonName}
-                onChange={(e) => setCommonName(e.target.value)}
-                className="h-10 rounded-lg bg-background text-sm"
-              />
-              <Input
-                type="tel"
-                inputMode="tel"
-                placeholder="Phone"
-                value={commonPhone}
-                onChange={(e) => setCommonPhone(e.target.value)}
-                className="h-10 rounded-lg bg-background text-sm"
-              />
-              {commonError && <p className="text-[11px] text-destructive">{commonError}</p>}
-              <Button
-                type="submit"
-                variant="outline"
-                className="w-full h-10 rounded-lg gap-1.5 text-xs font-semibold"
-              >
-                <UserPlus size={14} />
-                Add common player
-              </Button>
-            </form>
-          </div>
-
-          <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-50">
-            <div className="pointer-events-auto mx-auto max-w-[430px] border-t border-border bg-background/95 px-3 pt-2 shadow-[0_-6px_28px_rgba(0,0,0,0.09)] backdrop-blur-md pb-[max(0.65rem,env(safe-area-inset-bottom))] dark:shadow-[0_-6px_28px_rgba(0,0,0,0.35)]">
-              {lockError ? (
-                <p className="text-[11px] text-destructive mb-2 px-0.5 text-center leading-snug">{lockError}</p>
-              ) : null}
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-12 w-[30%] shrink-0 touch-manipulation px-2"
-                  asChild
-                >
-                  <Link to="/matches" aria-label="Back to matches">
-                    <span className="flex w-full items-center justify-center gap-1">
-                      <ArrowLeft className="h-4 w-4 shrink-0" />
-                      <span className="truncate text-xs font-bold">Back</span>
-                    </span>
-                  </Link>
-                </Button>
-                <Button
-                  type="button"
-                  className="h-12 min-w-0 flex-1 rounded-xl text-sm font-black gap-1.5 shadow-sm touch-manipulation active:scale-[0.99] transition-transform"
-                  onClick={handleLockDraft}
-                >
-                  <Lock className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">Lock &amp; continue</span>
-                </Button>
-              </div>
+                    <Link to="/matches" aria-label="Back to matches">
+                      <span className="flex w-full items-center justify-center gap-1.5">
+                        <ArrowLeft className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2.5} />
+                        <span className="truncate">Back</span>
+                      </span>
+                    </Link>
+                  </Button>
+                  <Button
+                    type="button"
+                    className="h-12 min-w-0 flex-1 rounded-xl gap-2 text-sm font-black shadow-[0_6px_20px_-6px_rgb(59_130_246/0.55)] motion-safe:active:scale-[0.985] transition-transform touch-manipulation"
+                    onClick={handleLockDraft}
+                  >
+                    <Lock className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+                    <span className="truncate">Submit &amp; lock</span>
+                  </Button>
+                </div>
+              </footer>
             </div>
           </div>
         </>
@@ -726,6 +644,53 @@ export default function MatchPlayerSetup() {
   );
 }
 
+function DraftTeamOrb({
+  label,
+  shortLabel,
+  side,
+  count,
+  isTurn,
+}: {
+  label: string;
+  shortLabel: string;
+  side: "one" | "two";
+  count: number;
+  isTurn: boolean;
+}) {
+  const emerald = side === "one";
+
+  return (
+    <div className="relative flex flex-1 min-w-0 flex-col items-center gap-3">
+      <div
+        className={cn(
+          "relative grid size-[5.25rem] place-items-center rounded-full border-2 text-[0.78rem] font-black tracking-[0.12em] transition-all duration-500",
+          emerald
+            ? "border-emerald-400/60 bg-emerald-500/[0.1] text-emerald-950 dark:border-emerald-400/55 dark:bg-emerald-950/55 dark:text-emerald-50"
+            : "border-violet-400/55 bg-violet-500/[0.1] text-violet-950 dark:border-violet-400/50 dark:bg-violet-950/55 dark:text-violet-50",
+          isTurn && emerald && "scale-105 animate-draft-orbit-turn-one",
+          isTurn && !emerald && "scale-105 animate-draft-orbit-turn-two",
+          !isTurn && "scale-[0.96] opacity-70",
+        )}
+      >
+        {isTurn ? (
+          <span className="absolute -right-0.5 -top-0.5 flex">
+            <span className="absolute inline-flex size-4 animate-ping rounded-full bg-primary opacity-35 motion-reduce:hidden" />
+            <span className="relative inline-flex size-4 rounded-full border-2 border-background bg-primary shadow-md" />
+          </span>
+        ) : null}
+        <span className="relative z-[1] px-2 text-center">{shortLabel}</span>
+      </div>
+
+      <div className="w-full space-y-1 text-center">
+        <p className="truncate px-1 text-[11px] font-bold leading-snug">{label}</p>
+        <p className="text-[10px] font-black tabular-nums uppercase tracking-[0.12em] text-muted-foreground">
+          {count} picked
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function SetupProgressBar({ step }: { step: 0 | 1 | 2 | 3 }) {
   const labels = ["Draft order", "Draft squads", "Roles & officials", "Bat / bowl toss"];
   return (
@@ -793,22 +758,30 @@ function DraftSquadStrip({
   return (
     <div
       className={cn(
-        "rounded-xl border p-2 min-h-[96px] flex flex-col",
-        variant === "green" && "border-green-600/20 bg-green-50/40 dark:bg-green-950/20",
-        variant === "sky" && "border-sky-600/20 bg-sky-50/35 dark:bg-sky-950/20"
+        "flex min-h-[108px] flex-col rounded-xl border p-2.5 shadow-inner backdrop-blur-[1px] transition-transform duration-300",
+        variant === "green" &&
+          "border-emerald-400/45 bg-emerald-500/[0.07] dark:border-emerald-500/35 dark:bg-emerald-950/35",
+        variant === "sky" &&
+          "border-violet-400/42 bg-violet-500/[0.07] dark:border-violet-500/32 dark:bg-violet-950/32",
       )}
     >
-      <p className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground mb-1 truncate leading-none">
+      <p className="mb-2 truncate text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">
         {title}
       </p>
-      <div className="space-y-1 flex-1 min-h-0 max-h-24 overflow-y-auto scrollbar-hide">
+      <div className="scrollbar-hide flex max-h-[8.5rem] min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain">
         {players.length === 0 ? (
           <p className="text-[10px] text-muted-foreground italic py-1">Empty</p>
         ) : (
           players.map((p) => (
             <div
               key={p.id}
-              className="flex items-center gap-1.5 rounded-lg bg-background/90 border border-border/50 px-1.5 py-1"
+              className={cn(
+                "flex items-center gap-2 rounded-lg border px-2 py-1.5 transition-[border-color]",
+                variant === "green" &&
+                  "border-emerald-500/22 bg-emerald-500/[0.04] dark:bg-background/65",
+                variant === "sky" &&
+                  "border-violet-500/22 bg-violet-500/[0.04] dark:bg-background/65",
+              )}
             >
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-bold">
                 {playerInitials(p.name)}

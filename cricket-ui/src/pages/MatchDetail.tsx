@@ -181,7 +181,7 @@ export default function MatchDetail() {
                           ball === "W"
                             ? "bg-foreground text-background border-foreground"
                             : ball === "Wd" || ball === "Nb"
-                              ? "bg-amber-500/20 text-amber-900 dark:text-amber-100 border-amber-500/40"
+                              ? "bg-blue-500/20 text-blue-900 dark:text-blue-100 border-blue-500/40"
                               : ball.startsWith("b") || ball.startsWith("lb")
                                 ? "bg-sky-500/15 text-sky-900 dark:text-sky-100 border-sky-500/35"
                                 : "bg-muted border-border"

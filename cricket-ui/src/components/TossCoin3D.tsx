@@ -42,9 +42,9 @@ export default function TossCoin3D({
       >
         <div
           className={cn(
-            "toss-coin-face absolute inset-0 flex items-center justify-center rounded-full border-4 border-amber-400",
-            "bg-gradient-to-br from-amber-200 via-yellow-300 to-amber-500 shadow-xl",
-            "text-2xl font-black text-amber-950 ring-2 ring-amber-300/50"
+            "toss-coin-face absolute inset-0 flex items-center justify-center rounded-full border-4 border-blue-500",
+            "bg-gradient-to-br from-sky-200 via-blue-400 to-blue-600 shadow-xl",
+            "text-2xl font-black text-blue-950 ring-2 ring-blue-300/50"
           )}
         >
           {abbrOne}

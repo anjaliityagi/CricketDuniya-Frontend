@@ -43,33 +43,34 @@
   --secondary-foreground: #0a3477;
   --muted: #eaf1ff;
   --muted-foreground: #49617f;
-  --accent: #fff1df;
-  --accent-foreground: #8a3f00;
+  --accent: #dbeafe;
+  --accent-foreground: #1e3a8a;
   --destructive: #d92d20;
   --border: #c8d8f4;
   --input: #b9ccec;
-  --ring: #ff8a00;
+  --ring: #2563eb;
 }
 
+/* Warmer blue-black “gaming” dark — not jet black, lifted panels, HUD-style edges */
 .dark {
-  --background: #071a3d;
-  --foreground: #f7fbff;
-  --card: #0d2a60;
-  --card-foreground: #f7fbff;
-  --popover: #0d2a60;
-  --popover-foreground: #f7fbff;
-  --primary: #ff8a00;
-  --primary-foreground: #081735;
-  --secondary: #103a80;
-  --secondary-foreground: #f7fbff;
-  --muted: #123770;
-  --muted-foreground: #b8c8e8;
-  --accent: #0f7b55;
-  --accent-foreground: #effff8;
-  --destructive: #ff5c5c;
-  --border: #244d91;
-  --input: #315b9e;
-  --ring: #ffb13b;
+  --background: #0c0f18;
+  --foreground: #e8eefc;
+  --card: #151a29;
+  --card-foreground: #e8eefc;
+  --popover: #151a29;
+  --popover-foreground: #e8eefc;
+  --primary: #3b82f6;
+  --primary-foreground: #f8fafc;
+  --secondary: #1e2639;
+  --secondary-foreground: #dce6fa;
+  --muted: #1a2132;
+  --muted-foreground: #95a3c0;
+  --accent: #1a2740;
+  --accent-foreground: #7dd3fc;
+  --destructive: #f87171;
+  --border: #2a3448;
+  --input: #242e45;
+  --ring: #38bdf8;
 }
 
 @layer base {
@@ -83,6 +84,18 @@
     font-family: system-ui, -apple-system, sans-serif;
     background:
       linear-gradient(180deg, color-mix(in srgb, var(--background) 92%, #0b5ed7 8%) 0%, var(--background) 42%),
+      var(--background);
+  }
+
+  html.dark body {
+    background:
+      radial-gradient(ellipse 120% 90% at 50% -18%, rgb(59 130 246 / 0.26), transparent 52%),
+      radial-gradient(ellipse 90% 55% at 100% 100%, rgb(37 99 235 / 0.12), transparent 52%),
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--background) 55%, #1e3a8a 45%) 0%,
+        var(--background) 48%
+      ),
       var(--background);
   }
 }
