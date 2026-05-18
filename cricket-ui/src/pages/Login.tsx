@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Phone, Lock, Eye, EyeOff, Trophy, Loader2 } from "lucide-react";
 
@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import SplashScreen from "@/components/SplashScreen";
 import { useAuth } from "@/context/AuthContext";
 import { useLoginMutation } from "@/hooks/useLoginMutation";
 import { getAuthErrorMessage } from "@/services/auth";
@@ -19,6 +20,7 @@ export default function Login() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showSplash, setShowSplash] = useState(true);
   const isSubmitting = loginMutation.isPending;
   const successMessage =
     typeof location.state === "object" &&
@@ -26,6 +28,20 @@ export default function Login() {
     "message" in location.state
       ? String(location.state.message)
       : "";
+
+  useEffect(() => {
+    if (!showSplash) return;
+
+    const timer = window.setTimeout(() => {
+      setShowSplash(false);
+    }, 2800);
+
+    return () => window.clearTimeout(timer);
+  }, [showSplash]);
+
+  function closeSplash() {
+    setShowSplash(false);
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +72,10 @@ export default function Login() {
       setError(getAuthErrorMessage(err));
     }
   };
+
+  if (showSplash) {
+    return <SplashScreen onDone={closeSplash} />;
+  }
 
   return (
     <div className="team-india-surface min-h-screen text-foreground flex items-center justify-center p-4">
