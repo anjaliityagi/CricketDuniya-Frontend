@@ -4,6 +4,23 @@ export type MatchPlayer = {
   isHost?: boolean;
 };
 
+export type BatsmanLive = {
+  name: string;
+  runs: number;
+  balls: number;
+  fours: number;
+  sixes: number;
+  isStriker: boolean;
+};
+
+export type BowlerLive = {
+  name: string;
+  overs: number;
+  balls: number;
+  runs: number;
+  wickets: number;
+};
+
 export type Match = {
   id: string;
   status: "live" | "scheduled" | "completed";
@@ -18,6 +35,12 @@ export type Match = {
   teamTwoPlayers?: MatchPlayer[];
   tossWinner?: "one" | "two";
   tossDecision?: "bat" | "bowl";
+  battingTeam?: "one" | "two";
+  inningsBalls?: number;
+  striker?: BatsmanLive;
+  nonStriker?: BatsmanLive;
+  currentBowler?: BowlerLive;
+  thisOverBalls?: string[];
 };
 
 export const mockMatches: Match[] = [
@@ -31,6 +54,32 @@ export const mockMatches: Match[] = [
     matchNote: "20 ov - Super Over next",
     overs_per_side: 20,
     venue: "Green Park, Lucknow",
+    battingTeam: "one",
+    inningsBalls: 112,
+    striker: {
+      name: "Rahul",
+      runs: 68,
+      balls: 42,
+      fours: 6,
+      sixes: 3,
+      isStriker: true,
+    },
+    nonStriker: {
+      name: "Amit",
+      runs: 45,
+      balls: 38,
+      fours: 4,
+      sixes: 1,
+      isStriker: false,
+    },
+    currentBowler: {
+      name: "Vikram",
+      overs: 3,
+      balls: 4,
+      runs: 28,
+      wickets: 1,
+    },
+    thisOverBalls: ["1", "4", "0", "2"],
   },
   {
     id: "match-002",
