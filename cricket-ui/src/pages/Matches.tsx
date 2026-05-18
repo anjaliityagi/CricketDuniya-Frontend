@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Plus, Radio, Calendar, Trophy } from "lucide-react";
+import { Radio, Calendar, Trophy } from "lucide-react";
 
 import { getMatches } from "@/data/matchStore";
 import type { Match } from "@/data/mockMatches";
@@ -32,7 +31,7 @@ export default function Matches() {
   }, [activeFilter, allMatches]);
 
   return (
-    <div className="max-w-[430px] mx-auto pb-20">
+    <div className="max-w-[430px] mx-auto pb-6">
       <div className="mb-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-1">
           Cricket Duniya
@@ -97,14 +96,6 @@ export default function Matches() {
         </div>
       )}
 
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-3 pb-4 pt-5 bg-gradient-to-t from-background via-background/95 to-transparent pointer-events-none">
-        <Button asChild className="pointer-events-auto w-full h-12 rounded-2xl text-base font-bold shadow-xl gap-2">
-          <Link to="/matches/create">
-            <Plus size={20} strokeWidth={2.5} />
-            Create Match
-          </Link>
-        </Button>
-      </div>
     </div>
   );
 }

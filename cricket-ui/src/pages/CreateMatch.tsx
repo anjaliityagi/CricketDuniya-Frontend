@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { addMatch } from "@/data/matchStore";
 import type { Match } from "@/data/mockMatches";
@@ -49,14 +48,6 @@ export default function CreateMatch() {
 
   return (
     <div className="max-w-[430px] mx-auto pb-10">
-      <Link
-        to="/matches"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-6"
-      >
-        <ArrowLeft size={18} />
-        Back to matches
-      </Link>
-
       <h1 className="text-2xl font-bold mb-1">Create Match</h1>
       <p className="text-muted-foreground text-sm mb-6">
         Step 1 — team names and overs (squad size is up to you on the next screen)

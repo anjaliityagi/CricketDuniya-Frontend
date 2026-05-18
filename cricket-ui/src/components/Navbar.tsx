@@ -79,6 +79,9 @@ export default function Navbar() {
               <Link onClick={closeMenu} to="/matches" className={linkClass}>
                 Matches
               </Link>
+              <Link onClick={closeMenu} to="/players" className={linkClass}>
+                Players
+              </Link>
               <Link onClick={closeMenu} to="/teams" className={linkClass}>
                 Teams
               </Link>

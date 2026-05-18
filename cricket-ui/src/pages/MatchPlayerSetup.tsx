@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -284,16 +284,6 @@ export default function MatchPlayerSetup() {
       )}
     >
       {phases !== "draft" && phases !== "roles" && (
-        <Link
-          to="/matches"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-2"
-        >
-          <ArrowLeft size={18} />
-          Back to matches
-        </Link>
-      )}
-
-      {phases !== "draft" && phases !== "roles" && (
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-0.5">
           Setup · {match.teamOneName} vs {match.teamTwoName}
         </p>
@@ -309,14 +299,10 @@ export default function MatchPlayerSetup() {
 
       {phases === "order_toss" && (
         <Card className="border-border mb-3">
-          <CardContent className="p-3 space-y-3">
-            <p className="text-sm font-semibold">Who picks players first?</p>
-            <p className="text-xs text-muted-foreground">
-              Tap the coin. The winner drafts first; teams then alternate. You decide how large each squad is —
-              lock the draft when both sides have the same count.
-            </p>
+          <CardContent className="space-y-2 px-3 py-2.5">
+            <p className="text-sm font-semibold leading-tight">Who picks players first?</p>
 
-            <div className="flex flex-col items-center py-2">
+            <div className="flex flex-col items-center py-0.5">
               <button
                 type="button"
                 onClick={handleFlipDraftOrder}
@@ -333,10 +319,12 @@ export default function MatchPlayerSetup() {
                   landedWinner={orderTossWinner}
                 />
                 {!orderFlipping ? (
-                  <p className="mt-2 text-center text-xs font-medium text-muted-foreground">Tap to flip</p>
+                  <p className="mt-1 text-center text-xs font-medium text-muted-foreground leading-tight">
+                    Tap to flip
+                  </p>
                 ) : null}
               </button>
-              <p className="text-xs text-muted-foreground mt-3 min-h-[1.25rem] text-center">
+              <p className="mt-1.5 min-h-[1rem] text-center text-xs text-muted-foreground leading-tight">
                 {orderFlipping
                   ? "Flipping…"
                   : orderTossWinner
@@ -344,11 +332,11 @@ export default function MatchPlayerSetup() {
                     : "Tap the coin to flip"}
               </p>
               {orderTossWinner && !orderFlipping && (
-                <p className="text-sm font-bold text-green-600 mt-2">{winnerOrderLabel} picks first</p>
+                <p className="mt-1 text-sm font-bold leading-tight text-green-600">{winnerOrderLabel} picks first</p>
               )}
             </div>
 
-            <div className="flex justify-center gap-8">
+            <div className="flex justify-center gap-6 pt-0.5">
               <MiniTeam label={match.teamOneName} hot={orderTossWinner === "one" && !orderFlipping} />
               <MiniTeam label={match.teamTwoName} hot={orderTossWinner === "two" && !orderFlipping} />
             </div>
@@ -360,15 +348,6 @@ export default function MatchPlayerSetup() {
               onClick={handleConfirmDraftOrder}
             >
               Continue to draft
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full"
-              onClick={handleFlipDraftOrder}
-              disabled={orderFlipping}
-            >
-              Flip again
             </Button>
           </CardContent>
         </Card>

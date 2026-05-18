@@ -13,6 +13,7 @@ import MatchToss from "../pages/MatchToss";
 import Teams from "../pages/Teams";
 import CreateTeam from "../pages/CreateTeam";
 import TeamDetail from "../pages/TeamDetail";
+import Players from "../pages/Players";
 import Signup from "../pages/Signup";
 
 export default function AppRoutes() {
@@ -66,6 +67,14 @@ export default function AppRoutes() {
           element={
             <MainLayout>
               <MatchDetail />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/players"
+          element={
+            <MainLayout>
+              <Players />
             </MainLayout>
           }
         />

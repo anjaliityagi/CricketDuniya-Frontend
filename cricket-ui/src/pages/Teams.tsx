@@ -42,7 +42,7 @@ export default function Teams() {
         </div>
       )}
 
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 pb-6 pt-10 bg-gradient-to-t from-background via-background to-transparent pointer-events-none">
+      <div className="pointer-events-none fixed left-1/2 z-[34] w-full max-w-[430px] -translate-x-1/2 bg-gradient-to-t from-background via-background to-transparent px-4 pt-10 [bottom:calc(3.85rem+env(safe-area-inset-bottom,0px))] pb-2">
         <Button asChild className="pointer-events-auto w-full h-12 rounded-2xl text-base font-bold shadow-xl gap-2">
           <Link to="/teams/create">
             <Plus size={20} strokeWidth={2.5} />
