@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 
 import MainLayout from "../layouts/MainLayout";
 import ProtectedRoute from "../components/ProtectedRoute";
@@ -12,7 +12,6 @@ import MatchDetail from "../pages/MatchDetail";
 import MatchPlayerSetup from "../pages/MatchPlayerSetup";
 import MatchToss from "../pages/MatchToss";
 import Teams from "../pages/Teams";
-import CreateTeam from "../pages/CreateTeam";
 import TeamDetail from "../pages/TeamDetail";
 import Signup from "../pages/Signup";
 import Profile from "../pages/Profile";
@@ -81,25 +80,25 @@ export default function AppRoutes() {
         <Route
           path="/teams"
           element={
-            <MainLayout>
-              <Teams />
-            </MainLayout>
+            <ProtectedRoute>
+              <MainLayout>
+                <Teams />
+              </MainLayout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/teams/create"
-          element={
-            <MainLayout>
-              <CreateTeam />
-            </MainLayout>
-          }
+          element={<Navigate to="/matches/create" replace />}
         />
         <Route
           path="/teams/:id"
           element={
-            <MainLayout>
-              <TeamDetail />
-            </MainLayout>
+            <ProtectedRoute>
+              <MainLayout>
+                <TeamDetail />
+              </MainLayout>
+            </ProtectedRoute>
           }
         />
         <Route

@@ -1,5 +1,3 @@
-import axios from "axios";
-
 import api from "@/lib/api";
 
 export type ProfileUser = {
@@ -68,26 +66,13 @@ export type UpdateProfilePayload = {
 };
 
 export async function fetchProfile() {
-  const { data } = await api.get<ProfileResponse>("/v1/profile");
+  const { data } = await api.get<ProfileResponse>("/profile");
 
   return data.data;
 }
 
 export async function updateProfile(payload: UpdateProfilePayload) {
-  try {
-    const { data } = await api.put<ProfileResponse>("/v1/profile", payload);
+  const { data } = await api.patch<ProfileResponse>("/profile", payload);
 
-    return data.data;
-  } catch (error) {
-    if (
-      axios.isAxiosError(error) &&
-      (error.response?.status === 404 || error.response?.status === 405)
-    ) {
-      const { data } = await api.patch<ProfileResponse>("/v1/profile", payload);
-
-      return data.data;
-    }
-
-    throw error;
-  }
+  return data.data;
 }

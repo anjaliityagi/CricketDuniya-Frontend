@@ -30,7 +30,7 @@ export default function SplashScreen({ onDone }: SplashScreenProps) {
           </span>
           <div>
             <p className="text-sm font-black uppercase tracking-[0.28em] text-primary">
-              Cricket Duniya
+              CricRx
             </p>
             <p className="text-xs text-muted-foreground">Team India energy</p>
           </div>

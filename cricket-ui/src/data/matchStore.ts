@@ -1,5 +1,4 @@
 import type { BatsmanLive, BowlerLive, Match, MatchPlayer } from "./mockMatches";
-import { mockMatches } from "./mockMatches";
 
 const STORAGE_KEY = "cricket_matches";
 
@@ -10,7 +9,7 @@ export function getMatches(): Match[] {
     return JSON.parse(saved);
   }
 
-  return mockMatches;
+  return [];
 }
 
 export function saveMatches(matches: Match[]) {

@@ -51,7 +51,7 @@ export default function Navbar() {
             </span>
             <div>
               <h1 className="text-xl font-extrabold tracking-tight">
-                Cricket Duniya
+                CricRx
               </h1>
               <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-muted-foreground">
                 Team India
@@ -96,7 +96,7 @@ export default function Navbar() {
               <div>
                 <h2 className="text-xl font-extrabold tracking-tight">Menu</h2>
                 <p className="text-xs font-semibold text-muted-foreground">
-                  Cricket Duniya
+                  CricRx
                 </p>
               </div>
               <Button

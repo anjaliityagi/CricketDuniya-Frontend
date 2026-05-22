@@ -1,22 +1,28 @@
 import { Link } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { CalendarPlus, Loader2, RefreshCw } from "lucide-react";
 
-import { getTeams } from "@/data/teamStore";
 import TeamCard from "@/components/TeamCard";
 import { Button } from "@/components/ui/button";
+import { useTeamsQuery } from "@/hooks/useTeamsQuery";
 
 export default function Teams() {
-  const allTeams = getTeams();
+  const {
+    data: allTeams = [],
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+  } = useTeamsQuery();
 
   return (
     <div className="max-w-[430px] mx-auto min-h-[85vh] pb-28">
       <div className="mb-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-2">
-          Cricket Duniya
+          CricRx
         </p>
         <h1 className="text-3xl font-black tracking-tight">Teams</h1>
         <p className="text-muted-foreground text-sm mt-2 leading-relaxed">
-          Manage your cricket teams
+          View teams created from matches
         </p>
       </div>
 
@@ -27,7 +33,34 @@ export default function Teams() {
         </p>
       </div>
 
-      {allTeams.length > 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
+          <Loader2 className="animate-spin" size={20} />
+          <span className="text-sm font-medium">Loading teams</span>
+        </div>
+      ) : isError ? (
+        <div className="text-center py-16 px-6 rounded-2xl border border-dashed border-border bg-muted">
+          <p className="font-semibold">Could not load teams</p>
+          <p className="text-muted-foreground text-sm mt-2">
+            Check the backend and try again
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-5 gap-2"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            {isFetching ? (
+              <Loader2 className="animate-spin" size={16} />
+            ) : (
+              <RefreshCw size={16} />
+            )}
+            Retry
+          </Button>
+        </div>
+      ) : allTeams.length > 0 ? (
         <div>
           {allTeams.map((team) => (
             <TeamCard key={team.id} team={team} />
@@ -37,16 +70,16 @@ export default function Teams() {
         <div className="text-center py-16 px-6 rounded-2xl border border-dashed border-border bg-muted">
           <p className="font-semibold">No teams yet</p>
           <p className="text-muted-foreground text-sm mt-2">
-            Create your first team to get started
+            Create a match to add teams and players
           </p>
         </div>
       )}
 
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 pb-6 pt-10 bg-gradient-to-t from-background via-background to-transparent pointer-events-none">
         <Button asChild className="pointer-events-auto w-full h-12 rounded-2xl text-base font-bold shadow-xl gap-2">
-          <Link to="/teams/create">
-            <Plus size={20} strokeWidth={2.5} />
-            Create Team
+          <Link to="/matches/create">
+            <CalendarPlus size={20} strokeWidth={2.5} />
+            Create Match
           </Link>
         </Button>
       </div>

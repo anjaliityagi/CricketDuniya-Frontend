@@ -13,7 +13,7 @@ export default function Landing() {
 
               <h1 className="text-3xl sm:text-5xl font-black leading-tight">
                 Welcome to
-                <span className="text-primary"> Cricket Duniya</span>
+                <span className="text-primary"> CricRx</span>
               </h1>
 
               <p className="text-muted-foreground mt-5 text-sm sm:text-base leading-6 sm:leading-7 max-w-xl mx-auto lg:mx-0">

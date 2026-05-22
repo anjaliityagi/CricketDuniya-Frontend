@@ -26,6 +26,7 @@ import type {
   FieldingStats,
 } from "@/services/profile";
 import { cn } from "@/lib/utils";
+import { IconBase } from "react-icons";
 
 type ProfileTab = "batting" | "bowling" | "fielding";
 
@@ -390,7 +391,7 @@ function HeroMetric({
 }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <Icon size={18} className="mb-2 text-primary" />
+      <IconBase size={18} className="mb-2 text-primary" />
       <p className="text-2xl font-black leading-none">{value}</p>
       <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
         {label}

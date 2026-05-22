@@ -40,7 +40,7 @@ export default function Matches() {
     <div className="max-w-[430px] mx-auto min-h-[85vh] pb-28">
       <div className="mb-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-2">
-          Cricket Duniya
+          CricRx
         </p>
         <h1 className="text-3xl font-black tracking-tight">Matches</h1>
         <p className="text-muted-foreground text-sm mt-2 leading-relaxed">

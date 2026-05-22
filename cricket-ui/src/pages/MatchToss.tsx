@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 import { getMatchById, startMatchWithToss } from "@/data/matchStore";
+import { useMatchQuery } from "@/hooks/useMatchQuery";
+import { useTossMutation } from "@/hooks/useTossMutation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -14,7 +16,9 @@ export default function MatchToss() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const match = getMatchById(id || "");
+  const { data: apiMatch, isLoading } = useMatchQuery(id);
+  const tossMutation = useTossMutation(id);
+  const match = apiMatch ?? getMatchById(id || "");
   const [tossWinner, setTossWinner] = useState<TossWinner>("");
   const [tossDecision, setTossDecision] = useState<TossDecision>("");
   const [isFlipping, setIsFlipping] = useState(false);
@@ -25,6 +29,15 @@ export default function MatchToss() {
       navigate(`/matches/${id}`);
     }
   }, [match, id, navigate]);
+
+  if (isLoading && !match) {
+    return (
+      <div className="max-w-[430px] mx-auto flex items-center justify-center gap-2 py-20 text-muted-foreground">
+        <Loader2 className="animate-spin" size={20} />
+        <span className="text-sm font-medium">Loading match</span>
+      </div>
+    );
+  }
 
   if (!match || !id) {
     return (
@@ -59,7 +72,7 @@ export default function MatchToss() {
     }, 1200);
   }
 
-  function handleConfirm() {
+  async function handleConfirm() {
     if (!tossWinner) {
       setError("Please flip the coin first");
       return;
@@ -67,6 +80,25 @@ export default function MatchToss() {
 
     if (!tossDecision) {
       setError("Please choose bat or bowl");
+      return;
+    }
+
+    const winnerTeamId = tossWinner === "one" ? match.team_a_id : match.team_b_id;
+    const winnerMatchTeamId =
+      tossWinner === "one" ? match.team_a_match_team_id : match.team_b_match_team_id;
+
+    if (winnerTeamId || winnerMatchTeamId) {
+      try {
+        await tossMutation.mutateAsync({
+          match_id: id,
+          toss_winner_team_id: winnerTeamId,
+          toss_winner_match_team_id: winnerMatchTeamId,
+          decision: tossDecision,
+        });
+        navigate(`/matches/${id}`);
+      } catch {
+        setError("Could not submit toss. Please try again.");
+      }
       return;
     }
 
@@ -171,8 +203,13 @@ export default function MatchToss() {
 
       {error && <p className="text-sm font-medium mb-4">{error}</p>}
 
-      <Button className="w-full h-11" onClick={handleConfirm} disabled={isFlipping}>
-        Start Match
+      <Button
+        className="w-full h-11"
+        onClick={handleConfirm}
+        disabled={isFlipping || tossMutation.isPending}
+      >
+        {tossMutation.isPending && <Loader2 className="animate-spin" size={16} />}
+        {tossMutation.isPending ? "Starting..." : "Start Match"}
       </Button>
     </div>
   );

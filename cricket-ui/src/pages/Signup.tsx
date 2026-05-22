@@ -4,6 +4,7 @@ import { Phone, Lock, Eye, EyeOff, User, Trophy, Loader2 } from "lucide-react";
 
 import { useSignupMutation } from "@/hooks/useSignupMutation";
 import { getAuthErrorMessage } from "@/services/auth";
+import { isValidPhoneNumber, normalizePhoneNumber } from "@/lib/utils";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -25,14 +26,14 @@ export default function Signup() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedName = name.trim();
-    const phoneNumber = phone.trim();
+    const phoneNumber = normalizePhoneNumber(phone);
 
     if (!trimmedName) {
       setError("Please enter your name");
       return;
     }
-    if (phoneNumber.length < 10) {
-      setError("Please enter a valid phone number");
+    if (!isValidPhoneNumber(phone)) {
+      setError("Enter a valid 10-digit phone number");
       return;
     }
     if (password.length < 6) {
@@ -61,7 +62,7 @@ export default function Signup() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 text-sm font-semibold text-primary shadow-sm">
             <Trophy size={18} />
-            Cricket Duniya
+            CricRx
           </div>
         </div>
 
@@ -113,9 +114,10 @@ export default function Signup() {
                 />
                 <input
                   type="tel"
+                  inputMode="numeric"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Enter your phone number"
+                  placeholder="9876543210"
                   className="w-full rounded-xl border border-input bg-background py-3 pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring transition"
                   required
                   disabled={isSubmitting}

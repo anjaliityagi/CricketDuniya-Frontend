@@ -1,23 +1,21 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import axios from "axios";
 
-import { addTeam } from "@/data/teamStore";
-import type { Team } from "@/data/mockTeams";
+import { useCreateTeamMutation } from "@/hooks/useCreateTeamMutation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function CreateTeam() {
   const navigate = useNavigate();
+  const createTeamMutation = useCreateTeamMutation();
 
   const [name, setName] = useState("");
-  const [captainName, setCaptainName] = useState("");
-  const [city, setCity] = useState("");
-  const [playerCount, setPlayerCount] = useState("11");
   const [error, setError] = useState("");
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     if (!name.trim()) {
@@ -25,22 +23,16 @@ export default function CreateTeam() {
       return;
     }
 
-    const count = Number(playerCount);
-    if (!count || count < 1) {
-      setError("Player count must be at least 1");
-      return;
+    try {
+      const newTeam = await createTeamMutation.mutateAsync({ name: name.trim() });
+      navigate(`/teams/${newTeam.id}`);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message ?? "Could not create team");
+        return;
+      }
+      setError("Could not create team");
     }
-
-    const newTeam: Team = {
-      id: "team-" + Date.now(),
-      name: name.trim(),
-      captainName: captainName.trim() || undefined,
-      city: city.trim() || undefined,
-      playerCount: count,
-    };
-
-    addTeam(newTeam);
-    navigate(`/teams/${newTeam.id}`);
   }
 
   return (
@@ -54,9 +46,7 @@ export default function CreateTeam() {
       </Link>
 
       <h1 className="text-2xl font-bold mb-1">Create Team</h1>
-      <p className="text-muted-foreground text-sm mb-6">
-        Add a new team for your matches
-      </p>
+      <p className="text-muted-foreground text-sm mb-6">Add a new team for your matches</p>
 
       <Card className="bg-card border-border">
         <CardContent className="p-5">
@@ -70,41 +60,13 @@ export default function CreateTeam() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold mb-2">
-                Captain Name (optional)
-              </label>
-              <Input
-                value={captainName}
-                onChange={(e) => setCaptainName(e.target.value)}
-                placeholder="e.g. Rahul"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-2">City (optional)</label>
-              <Input
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="e.g. Lucknow"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-2">Number of Players</label>
-              <Input
-                type="number"
-                value={playerCount}
-                onChange={(e) => setPlayerCount(e.target.value)}
-                placeholder="11"
-                min={1}
-              />
-            </div>
-
             {error && <p className="text-sm font-medium">{error}</p>}
 
-            <Button type="submit" className="w-full h-11">
-              Create Team
+            <Button type="submit" className="w-full h-11" disabled={createTeamMutation.isPending}>
+              {createTeamMutation.isPending && (
+                <Loader2 className="animate-spin" size={16} />
+              )}
+              {createTeamMutation.isPending ? "Creating..." : "Create Team"}
             </Button>
           </form>
         </CardContent>

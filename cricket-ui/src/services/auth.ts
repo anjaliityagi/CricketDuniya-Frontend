@@ -77,7 +77,7 @@ export function getStoredAuth() {
 }
 
 export async function login(payload: LoginPayload) {
-  const { data } = await api.post<LoginResponse>("/v1/auth/login", payload);
+  const { data } = await api.post<LoginResponse>("/auth/login", payload);
   const token = getToken(data);
   const user = getUser(data);
 
@@ -93,7 +93,7 @@ export async function login(payload: LoginPayload) {
 }
 
 export async function signup(payload: SignupPayload) {
-  const { data } = await api.post<SignupResponse>("/v1/auth/signup", payload);
+  const { data } = await api.post<SignupResponse>("/auth/signup", payload);
 
   return {
     user: data.data ?? null,
@@ -103,9 +103,15 @@ export async function signup(payload: SignupPayload) {
   };
 }
 
-export function logout() {
-  localStorage.removeItem(AUTH_TOKEN_KEY);
-  localStorage.removeItem(AUTH_USER_KEY);
+export async function logout() {
+  try {
+    await api.post("/logout");
+  } catch {
+    // Local logout should still complete if the token is already missing/expired.
+  } finally {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+  }
 }
 
 export function getAuthErrorMessage(error: unknown) {
