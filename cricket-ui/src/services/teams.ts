@@ -56,6 +56,20 @@ export type AddTeamPlayerPayload =
   | { player_id: string }
   | { name: string; phone_number: string };
 
+export type TeamPlayersBatchInput = {
+  team_id: string;
+  players: Array<
+    | { player_id: string }
+    | { name: string; phone_number: string }
+  >;
+};
+
+export async function addPlayersToTeams(payload: TeamPlayersBatchInput[]) {
+  const { data } = await api.post<{ message: string }>("/team-players", payload);
+
+  return data;
+}
+
 function normalizeTeam(team: ApiTeam): Team {
   return {
     id: team.id,
@@ -95,9 +109,12 @@ export async function addPlayerToTeam(
   payload: AddTeamPlayerPayload | string
 ) {
   const body = typeof payload === "string" ? { player_id: payload } : payload;
-  const { data } = await api.post(`/teams/${teamId}/players`, body);
+  const player =
+    "player_id" in body
+      ? { player_id: body.player_id }
+      : { name: body.name, phone_number: body.phone_number };
 
-  return data;
+  return addPlayersToTeams([{ team_id: teamId, players: [player] }]);
 }
 
 export async function removePlayerFromTeam(playerTeamLinkId: string) {
@@ -111,11 +128,38 @@ export async function searchUsers(search: string) {
     params: search.trim() ? { search: search.trim() } : undefined,
   });
 
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data.data)) return data.data;
-  if (Array.isArray(data.users)) return data.users;
-  if (Array.isArray(data.results)) return data.results;
-  if (Array.isArray(data.data?.users)) return data.data.users;
+  let rows: Record<string, unknown>[] = [];
 
-  return [];
+  if (Array.isArray(data)) rows = data as Record<string, unknown>[];
+  else if (Array.isArray(data.data)) rows = data.data as Record<string, unknown>[];
+  else if (Array.isArray(data.users)) rows = data.users as Record<string, unknown>[];
+  else if (Array.isArray(data.results)) rows = data.results as Record<string, unknown>[];
+  else if (Array.isArray(data.data?.users))
+    rows = data.data.users as Record<string, unknown>[];
+
+  return rows
+    .map((u) => {
+      const rawId = u.id ?? u.user_id ?? u.userId;
+      const id = typeof rawId === "string" ? rawId : String(rawId ?? "");
+      const name = typeof u.name === "string" ? u.name : "";
+      const phone =
+        typeof u.phone_number === "string"
+          ? u.phone_number
+          : typeof u.phoneNumber === "string"
+            ? u.phoneNumber
+            : "";
+
+      if (!id.trim() || !name.trim()) return null;
+
+      return {
+        id: id.trim(),
+        name: name.trim(),
+        phone_number: phone.trim(),
+        batting_style:
+          typeof u.batting_style === "string" ? u.batting_style : null,
+        bowling_style:
+          typeof u.bowling_style === "string" ? u.bowling_style : null,
+      } satisfies UserSearchResult;
+    })
+    .filter(Boolean) as UserSearchResult[];
 }

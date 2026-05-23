@@ -110,6 +110,7 @@ export default function MatchPickToss() {
 
     try {
       await firstPickMutation.mutateAsync(firstPickTeamId);
+      sessionStorage.setItem(`cricket_match_draft_first_pick_${id}`, firstPickTeamId);
       navigate(`/matches/${id}/players`);
     } catch (err) {
       setError(getErrorMessage(err, "Could not save pick order. Please try again."));

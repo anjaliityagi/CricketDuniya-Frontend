@@ -16,22 +16,27 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useMatchQuery } from "@/hooks/useMatchQuery";
-import { useTeamPlayersQuery } from "@/hooks/useTeamQuery";
 import { useUserSearchQuery } from "@/hooks/useUserSearchQuery";
 import {
-  addPlayerToTeam,
-  type AddTeamPlayerPayload,
-  type TeamPlayer,
+  addPlayersToTeams,
+  type TeamPlayersBatchInput,
   type UserSearchResult,
 } from "@/services/teams";
 import { cn, isValidPhoneNumber, normalizePhoneNumber } from "@/lib/utils";
 
 type TeamSide = "a" | "b";
 
+type LocalDraftPlayer = {
+  localId: string;
+  userId?: string;
+  name: string;
+  phone_number?: string;
+};
+
 type DraftPick = {
   pickNumber: number;
   side: TeamSide;
-  player: TeamPlayer;
+  player: LocalDraftPlayer;
 };
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -48,12 +53,31 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+const DRAFT_FIRST_PICK_STORAGE_KEY = (matchId: string) =>
+  `cricket_match_draft_first_pick_${matchId}`;
+
 function getFirstPickSide(
   firstPickTeamId: string | undefined,
-  teamAId: string | undefined
+  teamAId: string | undefined,
+  teamBId: string | undefined
 ): TeamSide | null {
-  if (!firstPickTeamId || !teamAId) return null;
-  return firstPickTeamId === teamAId ? "a" : "b";
+  if (!firstPickTeamId) return null;
+
+  const norm = (s: string | undefined) =>
+    typeof s === "string" ? s.trim().toLowerCase() : "";
+  const fp = norm(firstPickTeamId);
+
+  if (teamAId && norm(teamAId) === fp) return "a";
+  if (teamBId && norm(teamBId) === fp) return "b";
+
+  return null;
+}
+
+function safeRandomId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function getActiveTeamSide(
@@ -75,13 +99,11 @@ function getActiveTeamSide(
 
 function buildDraftTimeline(
   firstPickSide: TeamSide,
-  teamAPlayers: TeamPlayer[],
-  teamBPlayers: TeamPlayer[]
+  teamAPlayers: LocalDraftPlayer[],
+  teamBPlayers: LocalDraftPlayer[]
 ): DraftPick[] {
-  const safeTeamAPlayers = teamAPlayers ?? [];
-  const safeTeamBPlayers = teamBPlayers ?? [];
-  const firstTeamPlayers = firstPickSide === "a" ? safeTeamAPlayers : safeTeamBPlayers;
-  const secondTeamPlayers = firstPickSide === "a" ? safeTeamBPlayers : safeTeamAPlayers;
+  const firstTeamPlayers = firstPickSide === "a" ? teamAPlayers : teamBPlayers;
+  const secondTeamPlayers = firstPickSide === "a" ? teamBPlayers : teamAPlayers;
   const secondPickSide: TeamSide = firstPickSide === "a" ? "b" : "a";
   const maxLen = Math.max(firstTeamPlayers.length, secondTeamPlayers.length);
   const timeline: DraftPick[] = [];
@@ -107,8 +129,41 @@ function buildDraftTimeline(
   return timeline;
 }
 
-function toPlayerLabel(player: TeamPlayer) {
+function toPlayerLabel(player: LocalDraftPlayer) {
   return player.name || player.phone_number || "Unnamed player";
+}
+
+function toApiPlayers(players: LocalDraftPlayer[]) {
+  return players.map((player) =>
+    player.userId
+      ? { player_id: player.userId }
+      : { name: player.name, phone_number: player.phone_number! }
+  );
+}
+
+function buildBatchPayload(
+  teamAId: string | undefined,
+  teamBId: string | undefined,
+  teamAPlayers: LocalDraftPlayer[],
+  teamBPlayers: LocalDraftPlayer[]
+): TeamPlayersBatchInput[] {
+  const payload: TeamPlayersBatchInput[] = [];
+
+  if (teamAId && teamAPlayers.length > 0) {
+    payload.push({
+      team_id: teamAId,
+      players: toApiPlayers(teamAPlayers),
+    });
+  }
+
+  if (teamBId && teamBPlayers.length > 0) {
+    payload.push({
+      team_id: teamBId,
+      players: toApiPlayers(teamBPlayers),
+    });
+  }
+
+  return payload;
 }
 
 export default function MatchPlayerDraft() {
@@ -116,19 +171,12 @@ export default function MatchPlayerDraft() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: match, isLoading: isLoadingMatch } = useMatchQuery(id);
-  const { data: teamAPlayersRaw, isLoading: isLoadingTeamA } = useTeamPlayersQuery(
-    match?.team_a_id
-  );
-  const { data: teamBPlayersRaw, isLoading: isLoadingTeamB } = useTeamPlayersQuery(
-    match?.team_b_id
-  );
 
-  const teamAPlayers = teamAPlayersRaw ?? [];
-  const teamBPlayers = teamBPlayersRaw ?? [];
-
+  const [teamAPlayers, setTeamAPlayers] = useState<LocalDraftPlayer[]>([]);
+  const [teamBPlayers, setTeamBPlayers] = useState<LocalDraftPlayer[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [search, setSearch] = useState("");
   const [manualName, setManualName] = useState("");
   const [manualPhone, setManualPhone] = useState("");
@@ -138,7 +186,13 @@ export default function MatchPlayerDraft() {
   const userResults = userResultsRaw ?? [];
 
   useEffect(() => {
-    if (!isLoadingMatch && match && !match.first_pick_team_id && id) {
+    if (isLoadingMatch || !match || !id) return;
+
+    const hasPickOrder =
+      Boolean(match.first_pick_team_id) ||
+      Boolean(sessionStorage.getItem(DRAFT_FIRST_PICK_STORAGE_KEY(id)));
+
+    if (!hasPickOrder) {
       navigate(`/matches/${id}/pick-toss`, { replace: true });
     }
   }, [id, isLoadingMatch, match, navigate]);
@@ -150,9 +204,19 @@ export default function MatchPlayerDraft() {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  const effectiveFirstPickTeamId =
+    match?.first_pick_team_id ??
+    (id ? sessionStorage.getItem(DRAFT_FIRST_PICK_STORAGE_KEY(id)) : null) ??
+    undefined;
+
   const firstPickSide = useMemo(
-    () => getFirstPickSide(match?.first_pick_team_id, match?.team_a_id),
-    [match?.first_pick_team_id, match?.team_a_id]
+    () =>
+      getFirstPickSide(
+        effectiveFirstPickTeamId,
+        match?.team_a_id,
+        match?.team_b_id
+      ),
+    [effectiveFirstPickTeamId, match?.team_a_id, match?.team_b_id]
   );
 
   const activeSide = useMemo(
@@ -173,8 +237,6 @@ export default function MatchPlayerDraft() {
     return firstPickSide === "a" ? match.teamOneName : match.teamTwoName;
   }, [firstPickSide, match]);
 
-  const activeTeamId =
-    activeSide === "a" ? match?.team_a_id : activeSide === "b" ? match?.team_b_id : undefined;
   const activeTeamName =
     activeSide === "a" ? match?.teamOneName : activeSide === "b" ? match?.teamTwoName : "";
   const waitingTeamName =
@@ -185,53 +247,67 @@ export default function MatchPlayerDraft() {
   const takenPhones = useMemo(() => {
     const phones = new Set<string>();
     [...teamAPlayers, ...teamBPlayers].forEach((player) => {
-      if (player.phone_number) phones.add(player.phone_number);
+      if (!player.phone_number) return;
+      phones.add(normalizePhoneNumber(player.phone_number));
     });
     return phones;
   }, [teamAPlayers, teamBPlayers]);
 
-  async function refreshPlayers() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["teams", match?.team_a_id, "players"] }),
-      queryClient.invalidateQueries({ queryKey: ["teams", match?.team_b_id, "players"] }),
-    ]);
-  }
+  const takenUserIds = useMemo(() => {
+    const ids = new Set<string>();
+    [...teamAPlayers, ...teamBPlayers].forEach((player) => {
+      if (!player.userId?.trim()) return;
+      ids.add(player.userId.trim().toLowerCase());
+    });
+    return ids;
+  }, [teamAPlayers, teamBPlayers]);
 
-  async function handleAddPlayer(payload: AddTeamPlayerPayload) {
-    if (!activeTeamId || !activeTeamName) return;
-
-    setError("");
-    setIsAdding(true);
-
-    try {
-      await addPlayerToTeam(activeTeamId, payload);
-      await refreshPlayers();
-      setSearch("");
-      setManualName("");
-      setManualPhone("");
-      setManualError("");
-      setNotice(
-        waitingTeamName
-          ? `${activeTeamName} picked a player. ${waitingTeamName}'s turn next.`
-          : `${activeTeamName} picked a player.`
-      );
-    } catch (err) {
-      setError(getErrorMessage(err, "Could not add player"));
-    } finally {
-      setIsAdding(false);
+  function addLocalPlayer(side: TeamSide, player: LocalDraftPlayer) {
+    if (side === "a") {
+      setTeamAPlayers((current) => [...current, player]);
+    } else {
+      setTeamBPlayers((current) => [...current, player]);
     }
   }
 
-  async function handleAddUser(user: UserSearchResult) {
-    if (takenPhones.has(user.phone_number)) {
+  function handleAddUser(user: UserSearchResult) {
+    const phoneKey = normalizePhoneNumber(user.phone_number ?? "");
+    if (
+      (phoneKey && takenPhones.has(phoneKey)) ||
+      takenUserIds.has(user.id.trim().toLowerCase())
+    ) {
       setError("This player is already in one of the teams");
       return;
     }
 
-    await handleAddPlayer({ player_id: user.id });
+    if (!firstPickSide) {
+      setError(
+        "Pick order is missing — go back and complete the pick toss step."
+      );
+      return;
+    }
+
+    if (!activeSide) {
+      setError("Could not determine which team picks. Refresh and try again.");
+      return;
+    }
+
+    setError("");
+    addLocalPlayer(activeSide, {
+      localId: safeRandomId(),
+      userId: user.id,
+      name: user.name,
+      phone_number: user.phone_number,
+    });
+    setSearch("");
+    setNotice(
+      waitingTeamName
+        ? `${activeTeamName} picked a player. ${waitingTeamName}'s turn next.`
+        : `${activeTeamName} picked a player.`
+    );
   }
 
-  async function handleAddManual() {
+  function handleAddManual() {
     const name = manualName.trim();
     const phoneNumber = normalizePhoneNumber(manualPhone);
 
@@ -250,10 +326,66 @@ export default function MatchPlayerDraft() {
       return;
     }
 
-    await handleAddPlayer({ name, phone_number: phoneNumber });
+    if (!firstPickSide) {
+      setManualError("Pick order is missing — go back to toss first.");
+      return;
+    }
+
+    if (!activeSide) {
+      setManualError("Could not determine which team picks.");
+      return;
+    }
+
+    setManualError("");
+    setError("");
+    addLocalPlayer(activeSide, {
+      localId: safeRandomId(),
+      name,
+      phone_number: phoneNumber,
+    });
+    setManualName("");
+    setManualPhone("");
+    setNotice(
+      waitingTeamName
+        ? `${activeTeamName} picked a player. ${waitingTeamName}'s turn next.`
+        : `${activeTeamName} picked a player.`
+    );
   }
 
-  if (isLoadingMatch || isLoadingTeamA || isLoadingTeamB) {
+  async function handleContinue() {
+    if (!match?.team_a_id || !match?.team_b_id || !id) return;
+
+    const totalPlayers = teamAPlayers.length + teamBPlayers.length;
+    if (totalPlayers === 0) {
+      setError("Add at least one player before continuing");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError("");
+
+    try {
+      const payload = buildBatchPayload(
+        match.team_a_id,
+        match.team_b_id,
+        teamAPlayers,
+        teamBPlayers
+      );
+
+      await addPlayersToTeams(payload);
+      if (id) {
+        sessionStorage.removeItem(`cricket_match_draft_first_pick_${id}`);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["matches", id, "squad"] });
+      navigate(`/matches/${id}/toss`);
+    } catch (err) {
+      setError(getErrorMessage(err, "Could not save squads. Please try again."));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  if (isLoadingMatch) {
     return (
       <div className="max-w-[430px] mx-auto flex items-center justify-center gap-2 py-20 text-muted-foreground">
         <Loader2 className="animate-spin" size={20} />
@@ -316,7 +448,7 @@ export default function MatchPlayerDraft() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name or phone"
-              disabled={isAdding || !activeTeamId}
+              disabled={!activeSide || isSubmitting}
             />
 
             {isSearching && (
@@ -329,7 +461,10 @@ export default function MatchPlayerDraft() {
             {search.trim().length >= 2 && userResults.length > 0 && (
               <div className="space-y-2 mt-3">
                 {userResults.map((user) => {
-                  const alreadyAdded = takenPhones.has(user.phone_number);
+                  const phoneNorm = normalizePhoneNumber(user.phone_number ?? "");
+                  const alreadyAdded =
+                    (phoneNorm && takenPhones.has(phoneNorm)) ||
+                    takenUserIds.has(user.id.trim().toLowerCase());
 
                   return (
                     <div
@@ -345,7 +480,7 @@ export default function MatchPlayerDraft() {
                       <Button
                         type="button"
                         size="sm"
-                        disabled={alreadyAdded || isAdding || !activeTeamId}
+                        disabled={alreadyAdded || !activeSide || isSubmitting}
                         onClick={() => handleAddUser(user)}
                       >
                         {alreadyAdded ? "Taken" : `Pick #${pickNumber}`}
@@ -377,7 +512,7 @@ export default function MatchPlayerDraft() {
                   setManualError("");
                 }}
                 placeholder="Player name"
-                disabled={isAdding || !activeTeamId}
+                disabled={!activeSide || isSubmitting}
               />
               <div className="relative">
                 <Phone
@@ -393,7 +528,7 @@ export default function MatchPlayerDraft() {
                   inputMode="numeric"
                   className="pl-9"
                   placeholder="9876543210"
-                  disabled={isAdding || !activeTeamId}
+                  disabled={!activeSide || isSubmitting}
                 />
               </div>
               {manualError && (
@@ -402,20 +537,11 @@ export default function MatchPlayerDraft() {
               <Button
                 type="button"
                 className="w-full gap-2"
-                disabled={isAdding || !activeTeamId}
+                disabled={!activeSide || isSubmitting}
                 onClick={handleAddManual}
               >
-                {isAdding ? (
-                  <>
-                    <Loader2 className="animate-spin" size={16} />
-                    Picking...
-                  </>
-                ) : (
-                  <>
-                    Pick for {activeTeamName}
-                    <ArrowRight size={16} />
-                  </>
-                )}
+                Pick for {activeTeamName}
+                <ArrowRight size={16} />
               </Button>
             </div>
           </div>
@@ -447,9 +573,11 @@ export default function MatchPlayerDraft() {
       <Button
         type="button"
         className="w-full h-11"
-        onClick={() => navigate(`/matches/${id}/toss`)}
+        disabled={isSubmitting}
+        onClick={handleContinue}
       >
-        Continue to Match Toss
+        {isSubmitting && <Loader2 className="animate-spin" size={16} />}
+        {isSubmitting ? "Saving squads..." : "Continue to Match Toss"}
       </Button>
     </div>
   );
@@ -539,12 +667,10 @@ function SquadCard({
   pickNumbers,
 }: {
   label: string;
-  players: TeamPlayer[];
+  players: LocalDraftPlayer[];
   isActive: boolean;
   pickNumbers: number[];
 }) {
-  const roster = players ?? [];
-
   return (
     <Card
       className={cn(
@@ -559,15 +685,15 @@ function SquadCard({
             <p className="text-sm font-semibold truncate">{label}</p>
           </div>
           <span className="shrink-0 text-xs font-medium text-muted-foreground">
-            {roster.length} player{roster.length === 1 ? "" : "s"}
+            {players.length} player{players.length === 1 ? "" : "s"}
           </span>
         </div>
 
         <div className="space-y-2">
-          {roster.length > 0 ? (
-            roster.map((player, index) => (
+          {players.length > 0 ? (
+            players.map((player, index) => (
               <div
-                key={player.id}
+                key={player.localId}
                 className="flex items-center gap-3 rounded-lg border border-border bg-muted/60 px-3 py-2"
               >
                 {pickNumbers[index] && (
