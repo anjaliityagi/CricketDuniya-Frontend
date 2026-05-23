@@ -31,6 +31,7 @@ type ApiMatch = {
   match_date?: string;
   toss_decision?: "bat" | "bowl" | null;
   toss_winner_team_id?: string | null;
+  first_pick_team_id?: string | null;
   winner_match_team_id?: string | null;
   [key: string]: unknown;
 };
@@ -43,8 +44,8 @@ type MatchesResponse = {
 };
 
 export type CreateMatchPayload = {
-  team_a_id: string;
-  team_b_id: string;
+  team_a_name: string;
+  team_b_name: string;
   location: string;
   match_date: string;
   overs_per_innings: number;
@@ -230,6 +231,7 @@ function normalizeMatch(match: ApiMatch): Match {
     team_b_id: match.team_b_id,
     team_a_match_team_id: match.team_a_match_team_id,
     team_b_match_team_id: match.team_b_match_team_id,
+    first_pick_team_id: match.first_pick_team_id ?? undefined,
     tossDecision: match.toss_decision ?? undefined,
     tossWinner:
       match.toss_winner_team_id && match.toss_winner_team_id === match.team_a_id
@@ -272,13 +274,32 @@ export async function createMatch(payload: CreateMatchPayload) {
   return normalizeMatch(unwrapMatch(data));
 }
 
-export async function submitToss(payload: {
+export type TossPayload = {
   match_id: string;
-  toss_winner_team_id?: string;
-  toss_winner_match_team_id?: string;
+  toss_winner_team_id: string;
   decision: "bat" | "bowl";
-}) {
-  const { data } = await api.post("/toss", payload);
+};
+
+export type TossResponse = {
+  success: boolean;
+  message: string;
+  innings: MatchInnings[];
+};
+
+export async function submitFirstPick(matchId: string, firstPickTeamId: string) {
+  const { data } = await api.patch<{
+    success: boolean;
+    message: string;
+    data: ApiMatch;
+  }>(`/matches/${matchId}/first-pick`, {
+    first_pick_team_id: firstPickTeamId,
+  });
+
+  return normalizeMatch(data.data);
+}
+
+export async function submitToss(payload: TossPayload) {
+  const { data } = await api.post<TossResponse>("/toss", payload);
 
   return data;
 }

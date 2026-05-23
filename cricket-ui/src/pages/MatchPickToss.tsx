@@ -4,14 +4,14 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import axios from "axios";
 
 import TossCoin from "@/components/TossCoin";
+import { useFirstPickMutation } from "@/hooks/useFirstPickMutation";
 import { useMatchQuery } from "@/hooks/useMatchQuery";
-import { useTossMutation } from "@/hooks/useTossMutation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type TossWinner = "one" | "two" | "";
-type TossDecision = "bat" | "bowl" | "";
+type PickChoice = "first" | "second" | "";
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (axios.isAxiosError(error)) {
@@ -27,34 +27,22 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-export default function MatchToss() {
+export default function MatchPickToss() {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const { data: match, isLoading } = useMatchQuery(id);
-  const tossMutation = useTossMutation(id);
+  const firstPickMutation = useFirstPickMutation(id);
+
   const [tossWinner, setTossWinner] = useState<TossWinner>("");
-  const [tossDecision, setTossDecision] = useState<TossDecision>("");
+  const [pickChoice, setPickChoice] = useState<PickChoice>("");
   const [isFlipping, setIsFlipping] = useState(false);
   const [error, setError] = useState("");
 
-  const tossAlreadyDone =
-    Boolean(match?.tossDecision) ||
-    match?.status === "live" ||
-    match?.status === "completed";
-
   useEffect(() => {
-    if (!match || !id) return;
-
-    if (!match.first_pick_team_id) {
-      navigate(`/matches/${id}/pick-toss`, { replace: true });
-      return;
+    if (match?.first_pick_team_id && id) {
+      navigate(`/matches/${id}/players`, { replace: true });
     }
-
-    if (tossAlreadyDone) {
-      navigate(`/matches/${id}`, { replace: true });
-    }
-  }, [match, tossAlreadyDone, id, navigate]);
+  }, [match?.first_pick_team_id, id, navigate]);
 
   if (isLoading) {
     return (
@@ -76,7 +64,7 @@ export default function MatchToss() {
     );
   }
 
-  if (tossAlreadyDone || !match.first_pick_team_id) {
+  if (match.first_pick_team_id) {
     return null;
   }
 
@@ -88,7 +76,7 @@ export default function MatchToss() {
 
     setIsFlipping(true);
     setTossWinner("");
-    setTossDecision("");
+    setPickChoice("");
     setError("");
 
     setTimeout(() => {
@@ -103,50 +91,55 @@ export default function MatchToss() {
       return;
     }
 
-    if (!tossDecision) {
-      setError("Please choose bat or bowl");
+    if (!pickChoice) {
+      setError("Please choose whether to pick first or second");
       return;
     }
 
-    const winnerTeamId = tossWinner === "one" ? match.team_a_id : match.team_b_id;
+    const winnerTeamId =
+      tossWinner === "one" ? match.team_a_id : match.team_b_id;
+    const loserTeamId =
+      tossWinner === "one" ? match.team_b_id : match.team_a_id;
+    const firstPickTeamId =
+      pickChoice === "first" ? winnerTeamId : loserTeamId;
 
-    if (!winnerTeamId) {
+    if (!firstPickTeamId) {
       setError("Team details are missing for this match");
       return;
     }
 
     try {
-      await tossMutation.mutateAsync({
-        match_id: id,
-        toss_winner_team_id: winnerTeamId,
-        decision: tossDecision,
-      });
-      navigate(`/matches/${id}`);
+      await firstPickMutation.mutateAsync(firstPickTeamId);
+      navigate(`/matches/${id}/players`);
     } catch (err) {
-      setError(getErrorMessage(err, "Could not submit toss. Please try again."));
+      setError(getErrorMessage(err, "Could not save pick order. Please try again."));
     }
   }
 
   return (
     <div className="max-w-[430px] mx-auto pb-10">
       <Link
-        to={`/matches/${id}`}
+        to="/matches"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-6"
       >
         <ArrowLeft size={18} />
-        Back to match
+        Back to matches
       </Link>
 
-      <h1 className="text-2xl font-bold mb-1">Match Toss</h1>
+      <h1 className="text-2xl font-bold mb-1">Player Pick Toss</h1>
       <p className="text-muted-foreground text-sm mb-6">
-        Flip the coin, then choose bat or bowl. The match will start after toss.
+        Flip the coin to decide who picks players first
       </p>
 
       <div className="flex flex-col items-center mb-8">
         <TossCoin isFlipping={isFlipping} onFlip={handleFlipCoin} />
 
         <p className="text-sm text-muted-foreground mt-4">
-          {isFlipping ? "Flipping..." : tossWinner ? "Toss result is ready" : "Tap coin to flip"}
+          {isFlipping
+            ? "Flipping..."
+            : tossWinner
+              ? "Toss result is ready"
+              : "Tap coin to flip"}
         </p>
 
         {tossWinner && !isFlipping && (
@@ -173,31 +166,31 @@ export default function MatchToss() {
         <Card className="bg-card border-border mb-4">
           <CardContent className="p-5 space-y-4">
             <p className="text-sm font-semibold">
-              {winnerName} won the toss — choose to
+              {winnerName} won the toss — choose pick order
             </p>
 
             <div className="grid grid-cols-2 gap-3">
               <Button
                 type="button"
-                variant={tossDecision === "bat" ? "default" : "outline"}
+                variant={pickChoice === "first" ? "default" : "outline"}
                 className="h-12"
                 onClick={() => {
-                  setTossDecision("bat");
+                  setPickChoice("first");
                   setError("");
                 }}
               >
-                Bat
+                Pick First
               </Button>
               <Button
                 type="button"
-                variant={tossDecision === "bowl" ? "default" : "outline"}
+                variant={pickChoice === "second" ? "default" : "outline"}
                 className="h-12"
                 onClick={() => {
-                  setTossDecision("bowl");
+                  setPickChoice("second");
                   setError("");
                 }}
               >
-                Bowl
+                Pick Second
               </Button>
             </div>
 
@@ -208,15 +201,17 @@ export default function MatchToss() {
         </Card>
       )}
 
-      {error && <p className="text-sm font-medium text-destructive mb-4">{error}</p>}
+      {error && (
+        <p className="text-sm font-medium text-destructive mb-4">{error}</p>
+      )}
 
       <Button
         className="w-full h-11"
         onClick={handleConfirm}
-        disabled={isFlipping || tossMutation.isPending}
+        disabled={isFlipping || firstPickMutation.isPending}
       >
-        {tossMutation.isPending && <Loader2 className="animate-spin" size={16} />}
-        {tossMutation.isPending ? "Starting match..." : "Confirm Toss & Start Match"}
+        {firstPickMutation.isPending && <Loader2 className="animate-spin" size={16} />}
+        {firstPickMutation.isPending ? "Saving..." : "Continue to Player Pick"}
       </Button>
     </div>
   );

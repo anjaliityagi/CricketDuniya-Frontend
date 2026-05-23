@@ -837,11 +837,11 @@ function ScheduledView({
       </Card>
 
       <Button asChild variant="outline" className="w-full h-10">
-        <Link to={`/matches/${id}/setup`}>Edit Players</Link>
+        <Link to={`/matches/${id}/players`}>Edit Players</Link>
       </Button>
 
       <Button className="w-full h-10" onClick={onStart}>
-        Start Match
+        Do Match Toss
       </Button>
     </div>
   );

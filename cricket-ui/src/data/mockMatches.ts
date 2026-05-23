@@ -40,6 +40,7 @@ export type Match = {
   teamTwoPlayers?: MatchPlayer[];
   tossWinner?: "one" | "two";
   tossDecision?: "bat" | "bowl";
+  first_pick_team_id?: string;
   battingTeam?: "one" | "two";
   inningsBalls?: number;
   striker?: BatsmanLive;

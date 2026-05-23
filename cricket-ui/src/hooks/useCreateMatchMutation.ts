@@ -9,6 +9,7 @@ export function useCreateMatchMutation() {
     mutationFn: (payload: CreateMatchPayload) => createMatch(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["matches"] });
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
     },
   });
 }

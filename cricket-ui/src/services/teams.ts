@@ -85,9 +85,9 @@ export async function createTeam(payload: CreateTeamPayload) {
 }
 
 export async function fetchTeamPlayers(teamId: string) {
-  const { data } = await api.get<TeamPlayer[]>(`/teams/${teamId}/players`);
+  const { data } = await api.get<TeamPlayer[] | null>(`/teams/${teamId}/players`);
 
-  return data;
+  return Array.isArray(data) ? data : [];
 }
 
 export async function addPlayerToTeam(

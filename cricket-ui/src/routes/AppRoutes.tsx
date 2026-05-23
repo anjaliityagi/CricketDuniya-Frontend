@@ -10,6 +10,8 @@ import Matches from "../pages/Matches";
 import CreateMatch from "../pages/CreateMatch";
 import MatchDetail from "../pages/MatchDetail";
 import MatchPlayerSetup from "../pages/MatchPlayerSetup";
+import MatchPickToss from "../pages/MatchPickToss";
+import MatchPlayerDraft from "../pages/MatchPlayerDraft";
 import MatchToss from "../pages/MatchToss";
 import Teams from "../pages/Teams";
 import TeamDetail from "../pages/TeamDetail";
@@ -51,6 +53,22 @@ export default function AppRoutes() {
                 <CreateMatch />
               </MainLayout>
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/matches/:id/pick-toss"
+          element={
+            <MainLayout>
+              <MatchPickToss />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/matches/:id/players"
+          element={
+            <MainLayout>
+              <MatchPlayerDraft />
+            </MainLayout>
           }
         />
         <Route

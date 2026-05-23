@@ -1,18 +1,16 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { submitToss } from "@/services/matches";
+import { submitFirstPick } from "@/services/matches";
 
-export function useTossMutation(matchId?: string) {
+export function useFirstPickMutation(matchId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: submitToss,
+    mutationFn: (firstPickTeamId: string) => submitFirstPick(matchId!, firstPickTeamId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["matches"] });
       if (matchId) {
         queryClient.invalidateQueries({ queryKey: ["matches", matchId] });
-        queryClient.invalidateQueries({ queryKey: ["matches", matchId, "scorecard"] });
-        queryClient.invalidateQueries({ queryKey: ["matches", matchId, "squad"] });
       }
     },
   });

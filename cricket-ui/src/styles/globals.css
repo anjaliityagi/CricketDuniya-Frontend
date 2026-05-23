@@ -366,6 +366,11 @@ body::before {
   .splash-loader span {
     animation: none;
   }
+
+  .coin-flipping,
+  .coin-shadow-flipping {
+    animation: none;
+  }
 }
 
 .scrollbar-hide {
@@ -375,4 +380,155 @@ body::before {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+.coin-toss-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.coin-scene {
+  position: relative;
+  width: 7rem;
+  height: 9rem;
+  perspective: 700px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.coin-flipper {
+  position: relative;
+  width: 7rem;
+  height: 7rem;
+  transform-style: preserve-3d;
+  transform: translateY(0) rotateX(0);
+}
+
+.coin-flipping {
+  animation-name: coin-toss-flip;
+  animation-timing-function: cubic-bezier(0.33, 0.08, 0.25, 1);
+  animation-fill-mode: forwards;
+}
+
+.coin-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 4px solid #ca8a04;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+  box-shadow:
+    inset 0 2px 6px rgb(255 255 255 / 0.45),
+    inset 0 -3px 8px rgb(0 0 0 / 0.18),
+    0 10px 24px rgb(0 0 0 / 0.22);
+}
+
+.coin-face-front {
+  background: linear-gradient(145deg, #fde047, #ca8a04 58%, #a16207);
+  transform: translateZ(4px);
+}
+
+.coin-face-back {
+  background: linear-gradient(145deg, #facc15, #eab308 52%, #854d0e);
+  transform: rotateX(180deg) translateZ(4px);
+}
+
+.coin-edge {
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  transform: translateZ(0);
+  box-shadow: inset 0 0 0 3px rgb(161 98 7 / 0.65);
+  pointer-events: none;
+}
+
+.coin-label {
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: #713f12;
+  letter-spacing: -0.04em;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.35);
+}
+
+.coin-label-back {
+  transform: scaleX(-1);
+}
+
+.coin-shadow {
+  position: absolute;
+  bottom: 0;
+  width: 4.5rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.22);
+  filter: blur(4px);
+  transform: scale(1);
+}
+
+.coin-shadow-flipping {
+  animation-name: coin-shadow-jump;
+  animation-timing-function: cubic-bezier(0.33, 0.08, 0.25, 1);
+  animation-fill-mode: forwards;
+}
+
+@keyframes coin-toss-flip {
+  0% {
+    transform: translateY(0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1);
+  }
+  12% {
+    transform: translateY(-48px) rotateX(360deg) rotateY(45deg) rotateZ(8deg) scale(1.03);
+  }
+  28% {
+    transform: translateY(-104px) rotateX(720deg) rotateY(120deg) rotateZ(-12deg) scale(1.06);
+  }
+  45% {
+    transform: translateY(-118px) rotateX(1080deg) rotateY(200deg) rotateZ(10deg) scale(1.05);
+  }
+  62% {
+    transform: translateY(-72px) rotateX(1440deg) rotateY(280deg) rotateZ(-8deg) scale(1.02);
+  }
+  78% {
+    transform: translateY(-20px) rotateX(1620deg) rotateY(340deg) rotateZ(4deg) scale(0.98);
+  }
+  88% {
+    transform: translateY(6px) rotateX(1755deg) rotateY(360deg) rotateZ(0deg) scale(0.94);
+  }
+  94% {
+    transform: translateY(-3px) rotateX(1785deg) rotateY(360deg) rotateZ(0deg) scale(1.02);
+  }
+  100% {
+    transform: translateY(0) rotateX(1800deg) rotateY(360deg) rotateZ(0deg) scale(1);
+  }
+}
+
+@keyframes coin-shadow-jump {
+  0% {
+    opacity: 0.28;
+    transform: scale(1);
+  }
+  28% {
+    opacity: 0.08;
+    transform: scale(0.45);
+  }
+  45% {
+    opacity: 0.06;
+    transform: scale(0.38);
+  }
+  78% {
+    opacity: 0.15;
+    transform: scale(0.7);
+  }
+  88% {
+    opacity: 0.32;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0.28;
+    transform: scale(1);
+  }
 }
