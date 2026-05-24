@@ -1,16 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentType, type FormEvent, type ReactNode } from "react";
 import {
   Activity,
   BarChart3,
+  Camera,
   Edit3,
   Loader2,
   Medal,
   Phone,
   RefreshCw,
+  Save,
   Shield,
   Star,
   Trophy,
   User,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -78,7 +81,33 @@ export default function Profile() {
       .toUpperCase();
   }, [profile?.user.name]);
 
-  async function handleSaveProfile(e: React.FormEvent) {
+  function resetProfileForm() {
+    if (!profile) {
+      return;
+    }
+
+    setName(profile.user.name);
+    setProfileImage(profile.user.profile_image ?? "");
+    setBattingStyle(profile.user.batting_style ?? "");
+    setBowlingStyle(profile.user.bowling_style ?? "");
+    setError("");
+  }
+
+  function openProfileEditor() {
+    resetProfileForm();
+    setIsEditing(true);
+  }
+
+  function closeProfileEditor() {
+    if (updateProfileMutation.isPending) {
+      return;
+    }
+
+    resetProfileForm();
+    setIsEditing(false);
+  }
+
+  async function handleSaveProfile(e: FormEvent) {
     e.preventDefault();
     const trimmedName = name.trim();
 
@@ -105,6 +134,22 @@ export default function Profile() {
       setError(getAuthErrorMessage(err));
     }
   }
+
+  useEffect(() => {
+    if (!isEditing) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeProfileEditor();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isEditing, updateProfileMutation.isPending, profile]);
 
   if (isLoading) {
     return (
@@ -177,94 +222,27 @@ export default function Profile() {
               </div>
 
               <div className="min-w-0 flex-1">
-                {isEditing ? (
-                  <form onSubmit={handleSaveProfile} className="space-y-3">
-                    <Input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="h-10 bg-card text-base font-bold"
-                      placeholder="Name"
-                      maxLength={100}
-                      disabled={updateProfileMutation.isPending}
-                    />
-                    <Input
-                      value={profileImage}
-                      onChange={(e) => setProfileImage(e.target.value)}
-                      className="h-10 bg-card text-sm"
-                      placeholder="Profile image URL"
-                      disabled={updateProfileMutation.isPending}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input
-                        value={battingStyle}
-                        onChange={(e) => setBattingStyle(e.target.value)}
-                        className="h-10 bg-card text-sm"
-                        placeholder="Batting style"
-                        disabled={updateProfileMutation.isPending}
-                      />
-                      <Input
-                        value={bowlingStyle}
-                        onChange={(e) => setBowlingStyle(e.target.value)}
-                        className="h-10 bg-card text-sm"
-                        placeholder="Bowling style"
-                        disabled={updateProfileMutation.isPending}
-                      />
-                    </div>
-                    <p className="text-[10px] font-medium text-muted-foreground">
-                      Example: Right hand bat, Left arm spin
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h2 className="truncate text-2xl font-black uppercase leading-tight">
+                      {user.name}
+                    </h2>
+                    <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                      <Phone size={13} />
+                      {user.phone_number}
                     </p>
-                    <div className="flex gap-2">
-                      <Button
-                        type="submit"
-                        size="sm"
-                        disabled={updateProfileMutation.isPending}
-                      >
-                        {updateProfileMutation.isPending ? (
-                          <Loader2 className="animate-spin" size={16} />
-                        ) : (
-                          "Save"
-                        )}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setName(user.name);
-                          setProfileImage(user.profile_image ?? "");
-                          setBattingStyle(user.batting_style ?? "");
-                          setBowlingStyle(user.bowling_style ?? "");
-                          setIsEditing(false);
-                          setError("");
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h2 className="truncate text-2xl font-black uppercase leading-tight">
-                        {user.name}
-                      </h2>
-                      <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                        <Phone size={13} />
-                        {user.phone_number}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="shrink-0 gap-1 text-primary"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <Edit3 size={14} />
-                      Edit
-                    </Button>
                   </div>
-                )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 gap-1 text-primary"
+                    onClick={openProfileEditor}
+                  >
+                    <Edit3 size={14} />
+                    Edit
+                  </Button>
+                </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   <StylePill
@@ -278,12 +256,6 @@ export default function Profile() {
                 </div>
               </div>
             </div>
-
-            {error && (
-              <p className="mt-3 text-sm font-medium text-destructive">
-                {error}
-              </p>
-            )}
 
             <div className="mt-5 grid grid-cols-[1fr_auto] items-center gap-4">
               <div className="grid grid-cols-4 gap-2 text-center">
@@ -330,6 +302,161 @@ export default function Profile() {
         {activeTab === "bowling" && <BowlingPanel stats={profile.bowling} />}
         {activeTab === "fielding" && <FieldingPanel stats={profile.fielding} />}
       </section>
+
+      {isEditing && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/45 px-4 pb-5 pt-12 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center sm:pb-12"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeProfileEditor();
+            }
+          }}
+        >
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-edit-title"
+            onSubmit={handleSaveProfile}
+            className="w-full max-w-[398px] overflow-hidden rounded-2xl border border-border bg-card shadow-2xl animate-in slide-in-from-bottom-4 zoom-in-95 duration-200"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="india-accent-strip h-1.5" />
+            <div className="p-5">
+              <div className="mb-5 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+                    Profile
+                  </p>
+                  <h2 id="profile-edit-title" className="mt-1 text-xl font-black">
+                    Edit Player Card
+                  </h2>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Close profile editor"
+                  onClick={closeProfileEditor}
+                  disabled={updateProfileMutation.isPending}
+                  className="size-9 rounded-full"
+                >
+                  <X size={18} />
+                </Button>
+              </div>
+
+              <div className="mb-5 flex items-center gap-3 rounded-xl border border-border bg-background/70 p-3">
+                <div className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl border border-primary/30 bg-primary/15 text-base font-black text-primary">
+                  {profileImage ? (
+                    <img
+                      src={profileImage}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    initials
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-black">{name || user.name}</p>
+                  <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                    <Phone size={13} />
+                    {user.phone_number}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Name
+                  </span>
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-11 bg-background text-base font-bold"
+                    placeholder="Name"
+                    maxLength={100}
+                    disabled={updateProfileMutation.isPending}
+                    autoFocus
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    <Camera size={13} />
+                    Image URL
+                  </span>
+                  <Input
+                    value={profileImage}
+                    onChange={(e) => setProfileImage(e.target.value)}
+                    className="h-11 bg-background text-sm"
+                    placeholder="Profile image URL"
+                    disabled={updateProfileMutation.isPending}
+                  />
+                </label>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Batting
+                    </span>
+                    <Input
+                      value={battingStyle}
+                      onChange={(e) => setBattingStyle(e.target.value)}
+                      className="h-11 bg-background text-sm"
+                      placeholder="Right hand bat"
+                      disabled={updateProfileMutation.isPending}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Bowling
+                    </span>
+                    <Input
+                      value={bowlingStyle}
+                      onChange={(e) => setBowlingStyle(e.target.value)}
+                      className="h-11 bg-background text-sm"
+                      placeholder="Left arm spin"
+                      disabled={updateProfileMutation.isPending}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {error && (
+                <p className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
+                  {error}
+                </p>
+              )}
+
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11"
+                  onClick={closeProfileEditor}
+                  disabled={updateProfileMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="h-11"
+                  disabled={updateProfileMutation.isPending}
+                >
+                  {updateProfileMutation.isPending ? (
+                    <Loader2 className="animate-spin" size={17} />
+                  ) : (
+                    <Save size={17} />
+                  )}
+                  Save
+                </Button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
@@ -338,7 +465,7 @@ function StylePill({
   icon: Icon,
   label,
 }: {
-  icon: React.ComponentType<{ size?: number }>;
+  icon: ComponentType<{ size?: number }>;
   label: string;
 }) {
   return (
@@ -385,7 +512,7 @@ function HeroMetric({
   label,
   value,
 }: {
-  icon: React.ComponentType<{ size?: number }>;
+  icon: ComponentType<{ size?: number }>;
   label: string;
   value: string | number;
 }) {
@@ -454,8 +581,8 @@ function StatsPanel({
   children,
 }: {
   title: string;
-  icon: React.ComponentType<{ size?: number }>;
-  children: React.ReactNode;
+  icon: ComponentType<{ size?: number }>;
+  children: ReactNode;
 }) {
   return (
     <Card className="border-border bg-card py-0 shadow-sm">

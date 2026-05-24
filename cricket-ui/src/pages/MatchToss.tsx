@@ -5,6 +5,7 @@ import axios from "axios";
 
 import TossCoin from "@/components/TossCoin";
 import { useMatchQuery } from "@/hooks/useMatchQuery";
+import { useMatchSquadQuery } from "@/hooks/useMatchSquadQuery";
 import { useTossMutation } from "@/hooks/useTossMutation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,6 +33,7 @@ export default function MatchToss() {
   const navigate = useNavigate();
 
   const { data: match, isLoading } = useMatchQuery(id);
+  const { data: squad = [], isLoading: isLoadingSquad } = useMatchSquadQuery(id);
   const tossMutation = useTossMutation(id);
   const [tossWinner, setTossWinner] = useState<TossWinner>("");
   const [tossDecision, setTossDecision] = useState<TossDecision>("");
@@ -43,6 +45,25 @@ export default function MatchToss() {
     match?.status === "live" ||
     match?.status === "completed";
 
+  const teamAMatchId = match?.team_a_match_team_id ?? match?.team_a_id;
+  const teamBMatchId = match?.team_b_match_team_id ?? match?.team_b_id;
+  const teamAPlayers = squad.filter(
+    (player) =>
+      player.match_team_id === teamAMatchId ||
+      player.match_team_id === match?.team_a_id
+  );
+  const teamBPlayers = squad.filter(
+    (player) =>
+      player.match_team_id === teamBMatchId ||
+      player.match_team_id === match?.team_b_id
+  );
+  const captainsReady =
+    teamAPlayers.some((player) => player.is_captain) &&
+    teamBPlayers.some((player) => player.is_captain);
+  const wicketkeepersReady =
+    squad.some((player) => player.is_wicket_keeper) ||
+    (id ? sessionStorage.getItem(`cricket_match_roles_ready_${id}`) === "true" : false);
+
   useEffect(() => {
     if (!match || !id) return;
 
@@ -51,12 +72,33 @@ export default function MatchToss() {
       return;
     }
 
+    if (
+      !isLoadingSquad &&
+      !tossAlreadyDone &&
+      teamAPlayers.length > 0 &&
+      teamBPlayers.length > 0 &&
+      (!captainsReady || !wicketkeepersReady)
+    ) {
+      navigate(`/matches/${id}/captains`, { replace: true });
+      return;
+    }
+
     if (tossAlreadyDone) {
       navigate(`/matches/${id}`, { replace: true });
     }
-  }, [match, tossAlreadyDone, id, navigate]);
+  }, [
+    captainsReady,
+    id,
+    isLoadingSquad,
+    match,
+    navigate,
+    teamAPlayers.length,
+    teamBPlayers.length,
+    tossAlreadyDone,
+    wicketkeepersReady,
+  ]);
 
-  if (isLoading) {
+  if (isLoading || isLoadingSquad) {
     return (
       <div className="max-w-[430px] mx-auto flex items-center justify-center gap-2 py-20 text-muted-foreground">
         <Loader2 className="animate-spin" size={20} />

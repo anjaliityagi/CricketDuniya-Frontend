@@ -23,3 +23,25 @@ export async function fetchPlayers(search: string) {
 
   return data.data;
 }
+
+export async function assignTeamCaptain(playerId: string, teamId: string) {
+  const { data } = await api.put<{ message: string }>(
+    `/players/${playerId}/assign-captain`,
+    {
+      team_id: teamId,
+    }
+  );
+
+  return data;
+}
+
+export async function assignTeamWicketkeeper(playerId: string, teamId: string) {
+  const { data } = await api.put<{ message: string }>(
+    `/players/${playerId}/assign-wicketkeeper`,
+    {
+      team_id: teamId,
+    }
+  );
+
+  return data;
+}

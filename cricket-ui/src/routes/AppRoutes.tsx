@@ -12,6 +12,7 @@ import MatchDetail from "../pages/MatchDetail";
 import MatchPlayerSetup from "../pages/MatchPlayerSetup";
 import MatchPickToss from "../pages/MatchPickToss";
 import MatchPlayerDraft from "../pages/MatchPlayerDraft";
+import MatchCaptainSelection from "../pages/MatchCaptainSelection";
 import MatchToss from "../pages/MatchToss";
 import Teams from "../pages/Teams";
 import TeamDetail from "../pages/TeamDetail";
@@ -78,6 +79,14 @@ export default function AppRoutes() {
           element={
             <MainLayout>
               <MatchPlayerSetup />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/matches/:id/captains"
+          element={
+            <MainLayout>
+              <MatchCaptainSelection />
             </MainLayout>
           }
         />

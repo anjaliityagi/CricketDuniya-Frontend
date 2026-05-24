@@ -377,7 +377,7 @@ export default function MatchPlayerDraft() {
         sessionStorage.removeItem(`cricket_match_draft_first_pick_${id}`);
       }
       await queryClient.invalidateQueries({ queryKey: ["matches", id, "squad"] });
-      navigate(`/matches/${id}/toss`);
+      navigate(`/matches/${id}/captains`);
     } catch (err) {
       setError(getErrorMessage(err, "Could not save squads. Please try again."));
     } finally {
@@ -577,7 +577,7 @@ export default function MatchPlayerDraft() {
         onClick={handleContinue}
       >
         {isSubmitting && <Loader2 className="animate-spin" size={16} />}
-        {isSubmitting ? "Saving squads..." : "Continue to Match Toss"}
+        {isSubmitting ? "Saving squads..." : "Continue to Captains"}
       </Button>
     </div>
   );
