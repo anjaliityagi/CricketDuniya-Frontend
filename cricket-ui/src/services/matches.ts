@@ -231,6 +231,7 @@ function normalizeMatch(match: ApiMatch): Match {
     team_b_id: match.team_b_id,
     team_a_match_team_id: match.team_a_match_team_id,
     team_b_match_team_id: match.team_b_match_team_id,
+    winner_match_team_id: match.winner_match_team_id ?? undefined,
     first_pick_team_id: match.first_pick_team_id ?? undefined,
     tossDecision: match.toss_decision ?? undefined,
     tossWinner:

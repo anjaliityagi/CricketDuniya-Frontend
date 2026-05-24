@@ -33,6 +33,7 @@ export type Match = {
   team_b_id?: string;
   team_a_match_team_id?: string;
   team_b_match_team_id?: string;
+  winner_match_team_id?: string;
   matchNote?: string;
   overs_per_side: number;
   venue?: string;
