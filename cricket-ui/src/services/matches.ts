@@ -156,7 +156,7 @@ export type AddBallPayload = {
   striker_id?: string;
   non_striker_id?: string;
   bowler_id?: string;
-  ball_type: "normal" | "wide" | "no_ball" | "bye" | "leg_bye" | "wicket";
+  ball_type: "normal" | "wide" | "no_ball" | "bye" | "leg_bye" | "wicket" | "dead_ball" | "retired_hurt";
   runs_off_bat: number;
   extras: number;
   is_wicket: boolean;

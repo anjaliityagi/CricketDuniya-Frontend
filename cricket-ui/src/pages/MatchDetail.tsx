@@ -175,24 +175,25 @@ export default function MatchDetail() {
         Back
       </Link>
 
-      <div className="flex items-center gap-2 mb-1">
-        {isLive && (
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-600 opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-green-600" />
-          </span>
-        )}
-        <p
-          className={cn(
-            "text-[10px] font-bold tracking-[0.14em] uppercase",
-            isLive ? "text-green-600" : "text-muted-foreground"
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h1 className="min-w-0 text-xl font-bold">{title}</h1>
+        <div className="flex shrink-0 items-center gap-2">
+          {isLive && (
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-600 opacity-60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-600" />
+            </span>
           )}
-        >
-          {isLive ? "LIVE NOW" : isCompleted ? "COMPLETED" : "UPCOMING"}
-        </p>
+          <p
+            className={cn(
+              "text-[10px] font-bold tracking-[0.14em] uppercase",
+              isLive ? "text-green-600" : "text-muted-foreground"
+            )}
+          >
+            {isLive ? "LIVE NOW" : isCompleted ? "COMPLETED" : "UPCOMING"}
+          </p>
+        </div>
       </div>
-
-      <h1 className="text-xl font-bold mb-3">{title}</h1>
 
       {match.status === "scheduled" && (
         <ScheduledView match={match} id={id!} onStart={handleStartMatch} />
@@ -506,20 +507,37 @@ function BackendLiveMatch({
     );
   }
 
+  if (isCompleted) {
+    return (
+      <CompletedMatchSummary
+        match={match}
+        scorecard={scorecard}
+        squad={squad}
+        players={completedPlayers}
+        manOfTheMatch={manOfTheMatch}
+        worstPlayer={worstPlayer}
+        resultText={resultText}
+        winnerName={winnerName}
+      />
+    );
+  }
+
   return (
     <div className="space-y-3">
-      <Card className="overflow-hidden border-border bg-card py-0 gap-0 shadow-sm">
-        <CardContent className="space-y-4 p-4">
-          <div>
-            <div className="flex items-baseline justify-between gap-3">
-              <div className="flex min-w-0 items-baseline gap-2">
-                <p className="truncate font-mono text-[30px] font-black tracking-tight text-foreground">
-                  {battingTeamName} {displayedRuns} - {displayedWickets} ({displayedOver})
+      <Card className="overflow-hidden border-border bg-card py-0 gap-0 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+        <CardContent className="space-y-3 p-4">
+          <div className="rounded-[24px] border border-border/70 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.16),transparent_42%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--background)))] px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate font-mono text-[32px] font-black tracking-tight text-foreground">
+                  {battingTeamName} {displayedRuns} - {displayedWickets}
                 </p>
-                <p className="shrink-0 text-xs font-semibold text-muted-foreground">CRR: {liveRunRate}</p>
+              </div>
+              <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-right shadow-sm">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Overs</p>
+                <p className="mt-1 font-mono text-xl font-black text-foreground">{displayedOver}</p>
               </div>
             </div>
-            <p className="mt-1 text-sm text-primary">{bowlingTeamName} bowling</p>
           </div>
 
           {(liveState?.needs_next_batter || liveState?.needs_next_bowler) && (
@@ -530,96 +548,100 @@ function BackendLiveMatch({
             </div>
           )}
 
-          <div className="grid grid-cols-[1.7fr_1fr] gap-3">
-            <div className="space-y-3">
-              <div className="overflow-hidden rounded-2xl border border-border bg-background">
-                <div className="grid grid-cols-[1.6fr_repeat(5,minmax(0,0.5fr))] gap-2 bg-muted px-3 py-2 text-[11px] font-semibold text-muted-foreground">
-                  <span>Batter</span>
-                  <span className="text-center">R</span>
-                  <span className="text-center">B</span>
-                  <span className="text-center">4s</span>
-                  <span className="text-center">6s</span>
-                  <span className="text-center">SR</span>
-                </div>
-                <div className="divide-y divide-border">
-                  {currentBatters.length > 0 ? currentBatters.map((player) => {
-                    const isStriker = player.match_team_player_id === currentStrikerId;
-                    const strikeRate = player.balls_faced > 0 ? ((player.runs_scored / player.balls_faced) * 100).toFixed(2) : "0.00";
-                    return (
-                      <div
-                        key={player.match_team_player_id}
-                        className="grid grid-cols-[1.6fr_repeat(5,minmax(0,0.5fr))] gap-2 px-3 py-2.5 text-sm"
-                      >
-                        <span className="truncate font-medium text-primary">
-                          {player.player_name}{isStriker ? " *" : ""}
-                        </span>
-                        <span className="text-center font-semibold">{player.runs_scored}</span>
-                        <span className="text-center">{player.balls_faced}</span>
-                        <span className="text-center">{player.fours}</span>
-                        <span className="text-center">{player.sixes}</span>
-                        <span className="text-center">{strikeRate}</span>
-                      </div>
-                    );
-                  }) : (
-                    <div className="px-3 py-4 text-sm text-muted-foreground">Batters not available yet.</div>
-                  )}
-                </div>
+          <div className="space-y-3">
+            <div className="overflow-hidden rounded-2xl border border-border bg-background">
+              <div className="grid grid-cols-[1.6fr_repeat(5,minmax(0,0.5fr))] gap-2 bg-muted px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                <span>Batter</span>
+                <span className="text-center">R</span>
+                <span className="text-center">B</span>
+                <span className="text-center">4s</span>
+                <span className="text-center">6s</span>
+                <span className="text-center">SR</span>
               </div>
-
-              <div className="overflow-hidden rounded-2xl border border-border bg-background">
-                <div className="grid grid-cols-[1.6fr_repeat(5,minmax(0,0.5fr))] gap-2 bg-muted px-3 py-2 text-[11px] font-semibold text-muted-foreground">
-                  <span>Bowler</span>
-                  <span className="text-center">O</span>
-                  <span className="text-center">M</span>
-                  <span className="text-center">R</span>
-                  <span className="text-center">W</span>
-                  <span className="text-center">ECO</span>
-                </div>
-                <div className="divide-y divide-border">
-                  {featuredBowlers.length > 0 ? featuredBowlers.map((player) => {
-                    const economy = player.overs_bowled > 0 ? (player.runs_conceded / player.overs_bowled).toFixed(2) : "0.00";
-                    const isCurrent = player.match_team_player_id === currentBowlerId;
-                    return (
-                      <div
-                        key={player.match_team_player_id}
-                        className="grid grid-cols-[1.6fr_repeat(5,minmax(0,0.5fr))] gap-2 px-3 py-2.5 text-sm"
-                      >
-                        <span className="truncate font-medium text-primary">
-                          {player.player_name}{isCurrent ? " *" : ""}
-                        </span>
-                        <span className="text-center">{player.overs_bowled}</span>
-                        <span className="text-center">0</span>
-                        <span className="text-center">{player.runs_conceded}</span>
-                        <span className="text-center font-semibold">{player.wickets_taken}</span>
-                        <span className="text-center">{economy}</span>
-                      </div>
-                    );
-                  }) : (
-                    <div className="px-3 py-4 text-sm text-muted-foreground">Bowling stats not available yet.</div>
-                  )}
-                </div>
+              <div className="divide-y divide-border">
+                {currentBatters.length > 0 ? currentBatters.map((player) => {
+                  const isStriker = player.match_team_player_id === currentStrikerId;
+                  const strikeRate = player.balls_faced > 0 ? ((player.runs_scored / player.balls_faced) * 100).toFixed(2) : "0.00";
+                  return (
+                    <div
+                      key={player.match_team_player_id}
+                      className="grid grid-cols-[1.6fr_repeat(5,minmax(0,0.5fr))] gap-2 px-3 py-2.5 text-sm"
+                    >
+                      <span className="truncate font-medium text-primary">
+                        {player.player_name}{isStriker ? " *" : ""}
+                      </span>
+                      <span className="text-center font-semibold">{player.runs_scored}</span>
+                      <span className="text-center">{player.balls_faced}</span>
+                      <span className="text-center">{player.fours}</span>
+                      <span className="text-center">{player.sixes}</span>
+                      <span className="text-center">{strikeRate}</span>
+                    </div>
+                  );
+                }) : (
+                  <div className="px-3 py-4 text-sm text-muted-foreground">Batters not available yet.</div>
+                )}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border bg-background p-3">
+            <div className="overflow-hidden rounded-2xl border border-border bg-background">
+              <div className="grid grid-cols-[1.6fr_repeat(5,minmax(0,0.5fr))] gap-2 bg-muted px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+                <span>Bowler</span>
+                <span className="text-center">O</span>
+                <span className="text-center">M</span>
+                <span className="text-center">R</span>
+                <span className="text-center">W</span>
+                <span className="text-center">ECO</span>
+              </div>
+              <div className="divide-y divide-border">
+                {currentBowler ? (() => {
+                  const economy = currentBowler.overs_bowled > 0 ? (currentBowler.runs_conceded / currentBowler.overs_bowled).toFixed(2) : "0.00";
+                  return (
+                    <div className="grid grid-cols-[1.6fr_repeat(5,minmax(0,0.5fr))] gap-2 px-3 py-2.5 text-sm">
+                      <span className="truncate font-medium text-primary">{currentBowler.player_name} *</span>
+                      <span className="text-center">{currentBowler.overs_bowled}</span>
+                      <span className="text-center">0</span>
+                      <span className="text-center">{currentBowler.runs_conceded}</span>
+                      <span className="text-center font-semibold">{currentBowler.wickets_taken}</span>
+                      <span className="text-center">{economy}</span>
+                    </div>
+                  );
+                })() : (
+                  <div className="px-3 py-4 text-sm text-muted-foreground">Bowling stats not available yet.</div>
+                )}
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-border bg-background p-3 shadow-sm">
+              <p className="text-sm font-semibold text-muted-foreground">Recent balls</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {recentBalls.length > 0 ? recentBalls.map((ball) => (
+                  <RecentBallChip key={ball.id} ball={ball} />
+                )) : (
+                  <p className="text-sm text-muted-foreground">No recent balls yet.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-background p-3 shadow-sm">
               <p className="text-sm font-semibold text-muted-foreground">Key Stats</p>
-              <div className="mt-3 space-y-4 text-sm leading-5">
-                <div>
-                  <p className="font-semibold text-foreground">Partnership: <span className="font-normal text-muted-foreground">{partnershipRuns}({partnershipBalls})</span></p>
+              <div className="mt-3 space-y-3 text-sm leading-5">
+                <div className="rounded-xl border border-border/70 bg-muted/25 px-3 py-2.5">
+                  <p className="font-semibold text-foreground">Partnership</p>
+                  <p className="mt-1 text-muted-foreground">{partnershipRuns}({partnershipBalls})</p>
                 </div>
-                <div>
-                  <p className="font-semibold text-foreground">Last Wkt: <span className="font-normal text-muted-foreground">{lastWicketText}</span></p>
+                <div className="rounded-xl border border-border/70 bg-muted/25 px-3 py-2.5">
+                  <p className="font-semibold text-foreground">Last Wkt</p>
+                  <p className="mt-1 text-muted-foreground">{lastWicketText}</p>
                 </div>
                 {chaseLine && (
-                  <div>
-                    <p className="font-semibold text-foreground">Equation: <span className="font-normal text-muted-foreground">{chaseLine}</span></p>
+                  <div className="rounded-xl border border-primary/15 bg-primary/5 px-3 py-2.5">
+                    <p className="font-semibold text-foreground">Equation</p>
+                    <p className="mt-1 text-muted-foreground">{chaseLine}</p>
                   </div>
                 )}
-                <div>
-                  <p className="font-semibold text-foreground">Last {recentBalls.length} balls: <span className="font-normal text-muted-foreground">{recentBalls.reduce((sum, ball) => sum + ball.total_runs, 0)} runs</span></p>
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground">Toss: <span className="font-normal text-muted-foreground">{tossSummary}</span></p>
+                <div className="rounded-xl border border-border/70 bg-muted/25 px-3 py-2.5">
+                  <p className="font-semibold text-foreground">Toss</p>
+                  <p className="mt-1 text-muted-foreground">{tossSummary}</p>
                 </div>
               </div>
             </div>
@@ -645,7 +667,8 @@ function BackendLiveMatch({
       {isCompleted && (
         <CompletedMatchSummary
           match={match}
-          innings={scorecard.innings}
+          scorecard={scorecard}
+          squad={squad}
           players={completedPlayers}
           manOfTheMatch={manOfTheMatch}
           worstPlayer={worstPlayer}
@@ -659,23 +682,39 @@ function BackendLiveMatch({
 
 function CompletedMatchSummary({
   match,
-  innings,
-  players,
+  scorecard,
+  squad,
+  players: _players,
   manOfTheMatch,
   worstPlayer,
   resultText,
-  winnerName,
+  winnerName: _winnerName,
 }: {
   match: NonNullable<ReturnType<typeof getMatchById>>;
-  innings: MatchScorecard["innings"];
+  scorecard: MatchScorecard;
+  squad: MatchSquadPlayer[];
   players: MatchScorecard["batting"];
   manOfTheMatch: MatchScorecard["batting"][number] | null;
   worstPlayer: MatchScorecard["batting"][number] | null;
   resultText: string;
   winnerName: string | null;
 }) {
+  const innings = scorecard.innings;
   const firstInnings = innings.find((entry) => entry.innings_no === 1) ?? innings[0];
   const secondInnings = innings.find((entry) => entry.innings_no === 2) ?? innings[1];
+  const [selectedInningsId, setSelectedInningsId] = useState(firstInnings?.id ?? secondInnings?.id ?? "");
+
+  useEffect(() => {
+    if (!selectedInningsId) {
+      setSelectedInningsId(firstInnings?.id ?? secondInnings?.id ?? "");
+      return;
+    }
+    if (!innings.some((entry) => entry.id === selectedInningsId)) {
+      setSelectedInningsId(firstInnings?.id ?? secondInnings?.id ?? "");
+    }
+  }, [firstInnings?.id, innings, secondInnings?.id, selectedInningsId]);
+
+  const selectedInnings = innings.find((entry) => entry.id === selectedInningsId) ?? firstInnings ?? secondInnings;
 
   function getTeamName(teamId?: string) {
     if (!teamId) return "Unknown";
@@ -684,62 +723,188 @@ function CompletedMatchSummary({
     return "Unknown";
   }
 
+  function getBallsFromOvers(overs: number) {
+    const wholeOvers = Math.floor(overs);
+    const balls = Math.round((overs - wholeOvers) * 10);
+    return wholeOvers * 6 + balls;
+  }
+
+  function getEconomy(player: MatchScorecard["bowling"][number]) {
+    const balls = getBallsFromOvers(player.overs_bowled);
+    if (balls === 0) return "0.00";
+    return (player.runs_conceded * 6 / balls).toFixed(2);
+  }
+
+  if (!selectedInnings) {
+    return null;
+  }
+
+  const battingOrderMap = new Map(
+    squad
+      .filter((player) => player.match_team_id === selectedInnings.batting_match_team_id)
+      .map((player) => [player.match_team_player_id, player.batting_order ?? Number.MAX_SAFE_INTEGER])
+  );
+
+  const battingPlayers = scorecard.batting
+    .filter((player) => player.match_team_id === selectedInnings.batting_match_team_id)
+    .sort((a, b) => {
+      const orderA = battingOrderMap.get(a.match_team_player_id) ?? Number.MAX_SAFE_INTEGER;
+      const orderB = battingOrderMap.get(b.match_team_player_id) ?? Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      return b.runs_scored - a.runs_scored;
+    });
+
+  const bowlingPlayers = scorecard.bowling
+    .filter((player) => player.match_team_id === selectedInnings.bowling_match_team_id)
+    .sort((a, b) => {
+      if (b.wickets_taken !== a.wickets_taken) return b.wickets_taken - a.wickets_taken;
+      return getBallsFromOvers(b.overs_bowled) - getBallsFromOvers(a.overs_bowled);
+    });
+
+  const battingIds = new Set(battingPlayers.map((player) => player.match_team_player_id));
+  const didNotBat = squad
+    .filter(
+      (player) =>
+        player.match_team_id === selectedInnings.batting_match_team_id &&
+        player.is_playing_xi &&
+        !battingIds.has(player.match_team_player_id)
+    )
+    .sort((a, b) => (a.batting_order ?? Number.MAX_SAFE_INTEGER) - (b.batting_order ?? Number.MAX_SAFE_INTEGER));
+
+  const extras = Math.max(
+    selectedInnings.total_runs - battingPlayers.reduce((sum, player) => sum + player.runs_scored, 0),
+    0
+  );
+
+  const inningsTabs = [firstInnings, secondInnings].filter(Boolean) as MatchScorecard["innings"];
+
   return (
     <Card className="overflow-hidden border-border bg-card py-0 gap-0 shadow-sm">
       <CardContent className="space-y-4 p-4">
-        <div className="rounded-3xl border border-primary/15 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.18),transparent_55%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--background)))] p-5 text-center">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Match Result</p>
-          <p className="mt-3 text-3xl font-black tracking-tight text-foreground">{winnerName ?? "Result ready"}</p>
-          <p className="mt-2 text-sm font-semibold text-muted-foreground">{resultText}</p>
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-primary">{resultText}</p>
+          <div className="flex flex-wrap gap-2">
+            {inningsTabs.map((entry) => {
+              const active = entry.id === selectedInnings.id;
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  className={cn(
+                    "rounded-full px-3.5 py-1.5 text-xs font-semibold transition",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  )}
+                  onClick={() => setSelectedInningsId(entry.id)}
+                >
+                  {getTeamName(entry.batting_match_team_id)} ({entry.innings_no}
+                  {entry.innings_no === 1 ? "st" : entry.innings_no === 2 ? "nd" : "th"} Inn)
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {firstInnings && (
-            <div className="rounded-2xl border border-border bg-background p-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">1st innings</p>
-              <p className="mt-2 text-base font-bold text-foreground">{getTeamName(firstInnings.batting_match_team_id)}</p>
-              <p className="mt-1 font-mono text-lg font-black text-foreground">{firstInnings.total_runs}/{firstInnings.total_wickets}</p>
+        <div className="overflow-hidden rounded-[22px] border border-border bg-background">
+          <div className="flex items-center justify-between gap-3 bg-primary px-4 py-2.5 text-primary-foreground">
+            <p className="text-lg font-black tracking-tight">{getTeamName(selectedInnings.batting_match_team_id)}</p>
+            <p className="font-mono text-lg font-black">
+              {selectedInnings.total_runs}-{selectedInnings.total_wickets} ({match.overs_per_side} Ov)
+            </p>
+          </div>
+
+          <div className="border-b border-border bg-muted/40 px-4 py-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_40px_40px_40px_40px_64px] items-center gap-2 text-xs font-bold text-foreground">
+              <p>Batter</p>
+              <p className="text-right">R</p>
+              <p className="text-right">B</p>
+              <p className="text-right">4s</p>
+              <p className="text-right">6s</p>
+              <p className="text-right">SR</p>
             </div>
-          )}
-          {secondInnings && (
-            <div className="rounded-2xl border border-border bg-background p-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">2nd innings</p>
-              <p className="mt-2 text-base font-bold text-foreground">{getTeamName(secondInnings.batting_match_team_id)}</p>
-              <p className="mt-1 font-mono text-lg font-black text-foreground">{secondInnings.total_runs}/{secondInnings.total_wickets}</p>
-            </div>
-          )}
-        </div>
+          </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-700">Man of the Match</p>
-            <p className="mt-2 text-lg font-black text-foreground">{manOfTheMatch?.player_name ?? "Not available"}</p>
-            <p className="mt-1 text-sm font-semibold text-muted-foreground">{manOfTheMatch ? `${manOfTheMatch.fantasy_points} pts` : ""}</p>
-          </div>
-          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-amber-700">Worst Player</p>
-            <p className="mt-2 text-lg font-black text-foreground">{worstPlayer?.player_name ?? "Not available"}</p>
-            <p className="mt-1 text-sm font-semibold text-muted-foreground">{worstPlayer ? `${worstPlayer.fantasy_points} pts` : ""}</p>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-background p-3">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-foreground">Top fantasy scores</p>
-            <p className="text-xs text-muted-foreground">This match</p>
-          </div>
-          <div className="mt-3 space-y-2">
-            {players.slice(0, 5).map((player, index) => (
-              <div key={player.match_team_player_id} className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/30 px-3 py-2">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">{index + 1}. {player.player_name}</p>
-                  <p className="text-xs text-muted-foreground">{player.runs_scored} runs · {player.wickets_taken} wkts</p>
+          <div>
+            {battingPlayers.map((player) => {
+              const strikeRate = player.balls_faced > 0 ? ((player.runs_scored * 100) / player.balls_faced).toFixed(2) : "0.00";
+              return (
+                <div key={player.match_team_player_id} className="grid grid-cols-[minmax(0,1fr)_40px_40px_40px_40px_64px] items-center gap-2 border-b border-border/70 px-4 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold leading-5 text-primary break-words">{player.player_name}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{player.is_out ? "out" : "not out"}</p>
+                  </div>
+                  <p className="text-right text-sm font-black text-foreground">{player.runs_scored}</p>
+                  <p className="text-right text-sm font-semibold text-foreground">{player.balls_faced}</p>
+                  <p className="text-right text-sm text-foreground">{player.fours}</p>
+                  <p className="text-right text-sm text-foreground">{player.sixes}</p>
+                  <p className="text-right text-sm text-foreground">{strikeRate}</p>
                 </div>
-                <p className="shrink-0 font-mono text-sm font-black text-foreground">{player.fantasy_points} pts</p>
+              );
+            })}
+
+            <div className="grid grid-cols-[minmax(0,1fr)_64px] items-center gap-2 border-b border-border/70 px-4 py-2.5">
+              <div>
+                <p className="text-sm font-black text-foreground">Extras</p>
+              </div>
+              <p className="text-right text-sm font-black text-foreground">{extras}</p>
+            </div>
+
+            <div className="grid grid-cols-[minmax(0,1fr)_200px] items-center gap-2 border-b border-border/70 px-4 py-2.5">
+              <p className="text-sm font-black text-foreground">Total</p>
+              <p className="text-right text-sm font-black text-foreground">
+                {selectedInnings.total_runs}-{selectedInnings.total_wickets} ({match.overs_per_side} Overs)
+              </p>
+            </div>
+
+            <div className="px-4 py-2.5">
+              <p className="text-sm font-black text-foreground">Did not Bat</p>
+              <p className="mt-1 text-xs leading-5 text-primary">
+                {didNotBat.length > 0
+                  ? didNotBat
+                      .map((player) => player.player_name || player.name || player.phone_number || "Unnamed player")
+                      .join(", ")
+                  : "None"}
+              </p>
+            </div>
+          </div>
+
+          <div className="border-t border-border bg-muted/40 px-4 py-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_40px_40px_40px_56px] items-center gap-2 text-xs font-bold text-foreground">
+              <p>Bowler</p>
+              <p className="text-right">O</p>
+              <p className="text-right">R</p>
+              <p className="text-right">W</p>
+              <p className="text-right">ECO</p>
+            </div>
+          </div>
+
+          <div>
+            {bowlingPlayers.map((player) => (
+              <div key={player.match_team_player_id} className="grid grid-cols-[minmax(0,1fr)_40px_40px_40px_56px] items-center gap-2 border-b border-border/70 px-4 py-2.5 last:border-b-0">
+                <p className="text-sm font-semibold leading-5 text-primary break-words">{player.player_name}</p>
+                <p className="text-right text-sm font-semibold text-foreground">{player.overs_bowled}</p>
+                <p className="text-right text-sm font-semibold text-foreground">{player.runs_conceded}</p>
+                <p className="text-right font-black text-foreground">{player.wickets_taken}</p>
+                <p className="text-right text-sm text-foreground">{getEconomy(player)}</p>
               </div>
             ))}
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-primary/15 bg-primary/5 p-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Man of the Match</p>
+            <p className="mt-1.5 text-base font-black text-foreground break-words">{manOfTheMatch?.player_name ?? "Not available"}</p>
+            <p className="mt-1 text-xs font-semibold text-muted-foreground">{manOfTheMatch ? `${manOfTheMatch.fantasy_points} pts` : ""}</p>
+          </div>
+          <div className="rounded-2xl border border-border bg-muted/30 p-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Worst Player</p>
+            <p className="mt-1.5 text-base font-black text-foreground break-words">{worstPlayer?.player_name ?? "Not available"}</p>
+            <p className="mt-1 text-xs font-semibold text-muted-foreground">{worstPlayer ? `${worstPlayer.fantasy_points} pts` : ""}</p>
+          </div>
+        </div>
+
       </CardContent>
     </Card>
   );
@@ -778,15 +943,26 @@ function BackendScoreKeyboard({
   const [strikerId, setStrikerId] = useState(currentStrikerId);
   const [nonStrikerId, setNonStrikerId] = useState(currentNonStrikerId);
   const [bowlerId, setBowlerId] = useState(currentBowlerId);
-  const [nextBatterId, setNextBatterId] = useState("");
   const [error, setError] = useState("");
   const [isUpdatingState, setIsUpdatingState] = useState(false);
+  const [isWicketDialogOpen, setIsWicketDialogOpen] = useState(false);
+  const [isRetiredDialogOpen, setIsRetiredDialogOpen] = useState(false);
+  const [incidentDismissedPlayerId, setIncidentDismissedPlayerId] = useState("");
+  const [incidentDismissalType, setIncidentDismissalType] = useState("bowled");
+  const [incidentNextBatterId, setIncidentNextBatterId] = useState("");
+  const [incidentFielderId, setIncidentFielderId] = useState("");
 
   useEffect(() => {
     setStrikerId(currentStrikerId);
     setNonStrikerId(currentNonStrikerId);
     setBowlerId(currentBowlerId);
   }, [currentBowlerId, currentNonStrikerId, currentStrikerId]);
+
+  useEffect(() => {
+    if (currentStrikerId) {
+      setIncidentDismissedPlayerId(currentStrikerId);
+    }
+  }, [currentStrikerId]);
 
   const battingPlayers = squad.filter(
     (player) => player.match_team_id === battingMatchTeamId && player.is_playing_xi
@@ -813,6 +989,11 @@ function BackendScoreKeyboard({
       player.match_team_player_id !== nonStrikerId &&
       !dismissedIds.has(player.match_team_player_id)
   );
+  const dismissalPlayerOptions = battingOptions.filter(
+    (player) =>
+      player.match_team_player_id === strikerId || player.match_team_player_id === nonStrikerId
+  );
+  const fielderOptions = bowlingOptions;
   const hasBackendState = Boolean(currentStrikerId && currentNonStrikerId && currentBowlerId);
   const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(!hasBackendState);
   const [isBowlerDialogOpen, setIsBowlerDialogOpen] = useState(false);
@@ -849,6 +1030,10 @@ function BackendScoreKeyboard({
     ballType?: AddBallPayload["ball_type"];
     isWicket?: boolean;
     extras?: number;
+    dismissalType?: string;
+    dismissedPlayerId?: string;
+    nextBatterId?: string;
+    fielderId?: string;
   }) {
     if (!hasBackendState && (!strikerId || !nonStrikerId || !bowlerId)) {
       setError("Select striker, non-striker and bowler first");
@@ -861,10 +1046,6 @@ function BackendScoreKeyboard({
       return;
     }
 
-    if (options.isWicket && !nextBatterId && nextBatterOptions.length > 0) {
-      setError("Select next batter for this wicket");
-      return;
-    }
 
     const payload: AddBallPayload = {
       innings_id: inningsId,
@@ -878,11 +1059,14 @@ function BackendScoreKeyboard({
       is_wicket: Boolean(options.isWicket),
     };
 
-    if (options.isWicket) {
-      payload.dismissal_type = "bowled";
-      payload.dismissed_player_id = strikerId;
-      if (nextBatterId) {
-        payload.next_batter_id = nextBatterId;
+    if (options.isWicket || options.ballType === "retired_hurt") {
+      payload.dismissal_type = options.dismissalType;
+      payload.dismissed_player_id = options.dismissedPlayerId ?? strikerId;
+      if (options.nextBatterId) {
+        payload.next_batter_id = options.nextBatterId;
+      }
+      if (options.fielderId) {
+        payload.fielder_id = options.fielderId;
       }
     }
 
@@ -897,7 +1081,10 @@ function BackendScoreKeyboard({
         }
       }
       queryClient.invalidateQueries({ queryKey: ["matches", match.id, "scorecard"] });
-      setNextBatterId("");
+      setIsWicketDialogOpen(false);
+      setIsRetiredDialogOpen(false);
+      setIncidentNextBatterId("");
+      setIncidentFielderId("");
     } catch (err) {
       setError(getApiErrorMessage(err, "Unable to process ball right now"));
     }
@@ -927,6 +1114,66 @@ function BackendScoreKeyboard({
     } finally {
       setIsUpdatingState(false);
     }
+  }
+
+  function openWicketDialog() {
+    setIncidentDismissalType("bowled");
+    setIncidentDismissedPlayerId(strikerId || dismissalPlayerOptions[0]?.match_team_player_id || "");
+    setIncidentNextBatterId("");
+    setIncidentFielderId("");
+    setError("");
+    setIsWicketDialogOpen(true);
+  }
+
+  function openRetiredHurtDialog() {
+    setIncidentDismissedPlayerId(strikerId || dismissalPlayerOptions[0]?.match_team_player_id || "");
+    setIncidentNextBatterId("");
+    setIncidentFielderId("");
+    setError("");
+    setIsRetiredDialogOpen(true);
+  }
+
+  async function handleWicketConfirm() {
+    if (!incidentDismissedPlayerId) {
+      setError("Choose the dismissed batter");
+      return;
+    }
+    if (!incidentNextBatterId && nextBatterOptions.length > 0) {
+      setError("Choose the next batter");
+      return;
+    }
+    if (["caught", "run_out", "stumped"].includes(incidentDismissalType) && !incidentFielderId) {
+      setError("Choose the fielder involved");
+      return;
+    }
+    await submitBall({
+      runs: 0,
+      ballType: "wicket",
+      isWicket: true,
+      dismissalType: incidentDismissalType,
+      dismissedPlayerId: incidentDismissedPlayerId,
+      nextBatterId: incidentNextBatterId,
+      fielderId: incidentFielderId,
+    });
+  }
+
+  async function handleRetiredHurtConfirm() {
+    if (!incidentDismissedPlayerId) {
+      setError("Choose the retired batter");
+      return;
+    }
+    if (!incidentNextBatterId) {
+      setError("Choose the replacement batter");
+      return;
+    }
+    await submitBall({
+      runs: 0,
+      ballType: "retired_hurt",
+      isWicket: false,
+      dismissalType: "retired_hurt",
+      dismissedPlayerId: incidentDismissedPlayerId,
+      nextBatterId: incidentNextBatterId,
+    });
   }
 
   async function handleNextBowlerConfirm() {
@@ -997,76 +1244,111 @@ function BackendScoreKeyboard({
         isSaving={isUpdatingState}
         onSubmit={handleNextBowlerConfirm}
       />
+      <WicketDialog
+        open={isWicketDialogOpen}
+        dismissedPlayerId={incidentDismissedPlayerId}
+        dismissalType={incidentDismissalType}
+        nextBatterId={incidentNextBatterId}
+        fielderId={incidentFielderId}
+        batterOptions={dismissalPlayerOptions}
+        nextBatterOptions={nextBatterOptions}
+        fielderOptions={fielderOptions}
+        error={error}
+        isSaving={isSaving || isUpdatingState}
+        onClose={() => setIsWicketDialogOpen(false)}
+        onDismissedPlayerChange={setIncidentDismissedPlayerId}
+        onDismissalTypeChange={setIncidentDismissalType}
+        onNextBatterChange={setIncidentNextBatterId}
+        onFielderChange={setIncidentFielderId}
+        onSubmit={handleWicketConfirm}
+      />
+      <RetiredHurtDialog
+        open={isRetiredDialogOpen}
+        retiredPlayerId={incidentDismissedPlayerId}
+        replacementBatterId={incidentNextBatterId}
+        batterOptions={dismissalPlayerOptions}
+        replacementOptions={nextBatterOptions}
+        error={error}
+        isSaving={isSaving || isUpdatingState}
+        onClose={() => setIsRetiredDialogOpen(false)}
+        onRetiredPlayerChange={setIncidentDismissedPlayerId}
+        onReplacementChange={setIncidentNextBatterId}
+        onSubmit={handleRetiredHurtConfirm}
+      />
 
       <div className="fixed bottom-0 left-1/2 z-40 flex h-[40vh] max-h-[380px] w-full max-w-[430px] -translate-x-1/2 flex-col overflow-hidden border-t border-border bg-background/95 shadow-[0_-20px_45px_rgba(0,0,0,0.16)] backdrop-blur-md pb-[env(safe-area-inset-bottom,0px)]">
         <div className="shrink-0 border-b border-border/70 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.12),transparent_45%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--background)))] px-3 py-2.5">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Scoring console</p>
-              <p className="text-sm font-bold text-foreground">Update every ball live</p>
+              <p className="text-sm font-bold text-foreground">Tap a result to record the ball</p>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
                 size="sm"
-                className="h-8 rounded-full px-3 text-[10px]"
-                disabled={isUpdatingState}
-                onClick={() => setIsPlayerDialogOpen(true)}
+                disabled={isSaving || isUpdatingState}
+                className="h-8 rounded-full border-border bg-background/80 px-3 text-[11px] font-semibold"
+                onClick={handleUndo}
               >
-                Players
-              </Button>
-              <Button type="button" variant="outline" size="sm" className="h-8 rounded-full px-3 text-[10px]" disabled={isSaving || isUpdatingState} onClick={handleUndo}>
                 Undo
               </Button>
-              <Button type="button" variant="outline" size="sm" className="h-8 rounded-full px-3 text-[10px]" onClick={onEndMatch}>
-                End
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isUpdatingState}
+                className="h-8 rounded-full border-border bg-background/80 px-3 text-[11px] font-semibold"
+                onClick={onEndMatch}
+              >
+                End match
               </Button>
             </div>
-          </div>
-
-          <div className="mt-2 grid grid-cols-3 gap-2 text-[10px]">
-            <PlayerSummary label="Striker" value={getPlayerLabel(strikerId, battingOptions)} />
-            <PlayerSummary label="Non-striker" value={getPlayerLabel(nonStrikerId, battingOptions)} />
-            <PlayerSummary label="Bowler" value={getPlayerLabel(bowlerId, bowlingOptions)} />
           </div>
         </div>
 
         <div className="flex flex-1 flex-col justify-between overflow-hidden px-3 pb-3 pt-2">
           {error && <p className="mb-2 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">{error}</p>}
 
-          {nextBatterOptions.length > 0 && (
-            <div className="mb-2 rounded-2xl border border-border bg-card p-2.5">
-              <PlayerSelect
-                label="Next batter"
-                value={nextBatterId}
-                onChange={setNextBatterId}
-                players={nextBatterOptions}
-              />
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <div>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Runs off the ball</p>
+          <div className="space-y-2.5">
+            <div className="rounded-2xl border border-border bg-card p-2.5 shadow-sm">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Runs off the ball</p>
+                <p className="text-[10px] font-medium text-muted-foreground">Most used</p>
+              </div>
               <div className="grid grid-cols-3 gap-1.5">
                 {[0, 1, 2, 3, 4, 6].map((run) => (
-                  <KeyBtn key={run} disabled={isSaving || isScoringLocked} onClick={() => submitBall({ runs: run })}>
+                  <KeyBtn key={run} tone={run >= 4 ? "primary" : run === 0 ? "muted" : "default"} disabled={isSaving || isScoringLocked} onClick={() => submitBall({ runs: run })}>
                     {String(run)}
                   </KeyBtn>
                 ))}
               </div>
             </div>
 
-            <div>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Events</p>
-              <div className="grid grid-cols-3 gap-1.5">
-                <ExtraBtn disabled={isSaving || isScoringLocked} label="Wide +1" onClick={() => submitBall({ runs: 0, ballType: "wide", extras: 1 })} />
-                <ExtraBtn disabled={isSaving || isScoringLocked} label="No ball +1" onClick={() => submitBall({ runs: 0, ballType: "no_ball", extras: 1 })} />
-                <ExtraBtn disabled={isSaving || isScoringLocked} label="Wicket" danger onClick={() => submitBall({ runs: 0, ballType: "wicket", isWicket: true })} />
+            <div className="rounded-2xl border border-border bg-card p-2.5 shadow-sm">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Match events</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                <ExtraBtn disabled={isSaving || isScoringLocked} label="Wide +1" tone="accent" onClick={() => submitBall({ runs: 0, ballType: "wide", extras: 1 })} />
+                <ExtraBtn disabled={isSaving || isScoringLocked} label="No ball +1" tone="accent" onClick={() => submitBall({ runs: 0, ballType: "no_ball", extras: 1 })} />
+                <ExtraBtn disabled={isSaving || isScoringLocked} label="Wicket" danger onClick={openWicketDialog} />
+                <ExtraBtn disabled={isSaving || isScoringLocked} label="Retired hurt" onClick={openRetiredHurtDialog} />
               </div>
             </div>
 
+            <div className="rounded-2xl border border-border bg-card p-2.5 shadow-sm">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Match control</p>
+                {isScoringLocked && (
+                  <p className="text-[10px] font-medium text-amber-600">
+                    {isUpdatingState ? "Saving changes" : "Complete bowler change"}
+                  </p>
+                )}
+              </div>
+              <div className="grid grid-cols-1 gap-1.5">
+                <ExtraBtn disabled={isUpdatingState} label="Change players" tone="soft" onClick={() => setIsPlayerDialogOpen(true)} />
+              </div>
+            </div>
 
             {(isSaving || isUpdatingState) && (
               <div className="flex items-center justify-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
@@ -1126,6 +1408,12 @@ function RecentBallChip({ ball }: { ball: MatchScorecard["recent_balls"][number]
   } else if (ball.ball_type === "no_ball") {
     label = `Nb${ball.total_runs}`;
     tone = "bg-primary/10 text-primary border-primary/25";
+  } else if (ball.ball_type === "dead_ball") {
+    label = "DB";
+    tone = "bg-muted text-muted-foreground border-border";
+  } else if (ball.ball_type === "retired_hurt") {
+    label = "RH";
+    tone = "bg-secondary text-secondary-foreground border-border";
   } else if (ball.ball_type === "bye") {
     label = `B${ball.total_runs}`;
     tone = "bg-secondary text-secondary-foreground border-border";
@@ -1215,6 +1503,266 @@ function NextBowlerDialog({
   );
 }
 
+function WicketDialog({
+  open,
+  dismissedPlayerId,
+  dismissalType,
+  nextBatterId,
+  fielderId,
+  batterOptions,
+  nextBatterOptions,
+  fielderOptions,
+  error,
+  isSaving,
+  onClose,
+  onDismissedPlayerChange,
+  onDismissalTypeChange,
+  onNextBatterChange,
+  onFielderChange,
+  onSubmit,
+}: {
+  open: boolean;
+  dismissedPlayerId: string;
+  dismissalType: string;
+  nextBatterId: string;
+  fielderId: string;
+  batterOptions: MatchSquadPlayer[];
+  nextBatterOptions: MatchSquadPlayer[];
+  fielderOptions: MatchSquadPlayer[];
+  error: string;
+  isSaving: boolean;
+  onClose: () => void;
+  onDismissedPlayerChange: (value: string) => void;
+  onDismissalTypeChange: (value: string) => void;
+  onNextBatterChange: (value: string) => void;
+  onFielderChange: (value: string) => void;
+  onSubmit: () => void;
+}) {
+  if (!open) return null;
+
+  const needsFielder = ["caught", "run_out", "stumped"].includes(dismissalType);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/70 backdrop-blur-md">
+      <div className="mx-auto flex min-h-full w-full max-w-[430px] items-center justify-center px-4 py-6">
+        <div className="relative w-full overflow-hidden rounded-[28px] border border-border bg-background text-foreground shadow-[0_24px_80px_rgba(0,0,0,0.25)]">
+          <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top_left,hsl(var(--destructive)/0.18),transparent_42%),radial-gradient(circle_at_top_right,hsl(var(--primary)/0.10),transparent_34%)] opacity-70" />
+
+          <div className="relative border-b border-border px-5 pb-5 pt-5">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-destructive/20 bg-destructive/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-destructive">
+                  <Sparkles size={14} />
+                  Wicket Event
+                </div>
+                <div>
+                  <p className="text-xl font-black tracking-tight text-foreground">Record the wicket</p>
+                  <p className="mt-1 max-w-[290px] text-xs leading-5 text-muted-foreground">
+                    Confirm who is out, how the wicket happened, and who comes in next before scoring continues.
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-9 rounded-full border border-border bg-background/80 px-3 text-[11px] text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                disabled={isSaving}
+                onClick={onClose}
+              >
+                Close
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-2xl border border-destructive/15 bg-destructive/10 px-3 py-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-destructive">Step 1</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">Who is out</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-muted/50 px-3 py-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Step 2</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">Dismissal</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-muted/50 px-3 py-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Step 3</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">Replacement</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative space-y-3 px-5 py-5">
+            <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
+              <div className="mb-2 flex items-center gap-2 text-destructive">
+                <Crosshair size={15} />
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-foreground">Dismissed batter</p>
+              </div>
+              <PlayerSelect
+                label="Out batter"
+                value={dismissedPlayerId}
+                onChange={onDismissedPlayerChange}
+                players={batterOptions}
+                disabled={isSaving}
+              />
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
+              <div className="mb-2 flex items-center gap-2 text-muted-foreground">
+                <Shield size={15} />
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-foreground">Dismissal details</p>
+              </div>
+              <div className="space-y-3">
+                <SimpleSelect
+                  label="Dismissal type"
+                  value={dismissalType}
+                  onChange={onDismissalTypeChange}
+                  disabled={isSaving}
+                  options={[["bowled", "Bowled"], ["caught", "Caught"], ["lbw", "LBW"], ["run_out", "Run out"], ["stumped", "Stumped"], ["hit_wicket", "Hit wicket"]]}
+                />
+                {needsFielder && (
+                  <div className="rounded-2xl border border-primary/15 bg-primary/5 p-3">
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Fielding involvement</p>
+                    <PlayerSelect
+                      label="Fielder"
+                      value={fielderId}
+                      onChange={onFielderChange}
+                      players={fielderOptions}
+                      disabled={isSaving}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
+              <div className="mb-2 flex items-center gap-2 text-primary">
+                <Sparkles size={15} />
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-foreground">Incoming batter</p>
+              </div>
+              <PlayerSelect
+                label="Next batter"
+                value={nextBatterId}
+                onChange={onNextBatterChange}
+                players={nextBatterOptions}
+                disabled={isSaving}
+              />
+              {nextBatterOptions.length === 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  No replacement batter is available from the remaining playing XI.
+                </p>
+              )}
+            </div>
+
+            {error && (
+              <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 flex-1 rounded-xl border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
+                disabled={isSaving}
+                onClick={onClose}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={isSaving}
+                className="h-11 flex-1 rounded-xl bg-destructive text-destructive-foreground shadow-lg shadow-destructive/20 hover:bg-destructive/90"
+                onClick={onSubmit}
+              >
+                {isSaving ? "Saving wicket..." : "Confirm wicket"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RetiredHurtDialog({
+  open,
+  retiredPlayerId,
+  replacementBatterId,
+  batterOptions,
+  replacementOptions,
+  error,
+  isSaving,
+  onClose,
+  onRetiredPlayerChange,
+  onReplacementChange,
+  onSubmit,
+}: {
+  open: boolean;
+  retiredPlayerId: string;
+  replacementBatterId: string;
+  batterOptions: MatchSquadPlayer[];
+  replacementOptions: MatchSquadPlayer[];
+  error: string;
+  isSaving: boolean;
+  onClose: () => void;
+  onRetiredPlayerChange: (value: string) => void;
+  onReplacementChange: (value: string) => void;
+  onSubmit: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 bg-background/70 backdrop-blur-md">
+      <div className="mx-auto flex min-h-full w-full max-w-[430px] items-center justify-center px-4 py-6">
+        <div className="w-full overflow-hidden rounded-[28px] border border-border bg-background text-foreground shadow-[0_24px_80px_rgba(0,0,0,0.25)]">
+          <div className="border-b border-border px-5 pb-4 pt-5">
+            <p className="text-xl font-black tracking-tight">Retired hurt</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">Replace the retired batter without adding a wicket.</p>
+          </div>
+          <div className="space-y-3 px-5 py-5">
+            <PlayerSelect label="Retired batter" value={retiredPlayerId} onChange={onRetiredPlayerChange} players={batterOptions} disabled={isSaving} />
+            <PlayerSelect label="Replacement batter" value={replacementBatterId} onChange={onReplacementChange} players={replacementOptions} disabled={isSaving} />
+            {error && <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">{error}</div>}
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" disabled={isSaving} className="h-11 flex-1 rounded-xl" onClick={onClose}>Cancel</Button>
+              <Button type="button" disabled={isSaving} className="h-11 flex-1 rounded-xl" onClick={onSubmit}>{isSaving ? 'Saving...' : 'Save change'}</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SimpleSelect({
+  label,
+  value,
+  onChange,
+  options,
+  disabled = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: [string, string][];
+  disabled?: boolean;
+}) {
+  return (
+    <label className="min-w-0">
+      <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-11 w-full rounded-xl border border-input bg-background px-3 text-[13px] font-medium text-foreground shadow-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {options.map(([optionValue, optionLabel]) => (
+          <option key={optionValue} value={optionValue}>{optionLabel}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 function PlayerSetupDialog({
   open,
   canClose,
@@ -1274,7 +1822,6 @@ function PlayerSetupDialog({
                   variant="ghost"
                   size="sm"
                   className="h-9 rounded-full border border-border bg-background/80 px-3 text-[11px] text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  disabled={isSaving}
                   disabled={isSaving}
                   onClick={onClose}
                 >
@@ -1379,16 +1926,6 @@ function PlayerSetupDialog({
   );
 }
 
-function PlayerSummary({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 rounded-md border border-border/70 bg-muted/40 px-2 py-1.5">
-      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </p>
-      <p className="truncate text-[11px] font-semibold">{value}</p>
-    </div>
-  );
-}
 
 function PlayerSelect({
   label,
@@ -1767,11 +2304,13 @@ function ExtraBtn({
   onClick,
   danger,
   disabled,
+  tone = "default",
 }: {
   label: string;
   onClick: () => void;
   danger?: boolean;
   disabled?: boolean;
+  tone?: "default" | "accent" | "soft";
 }) {
   return (
     <button
@@ -1782,7 +2321,11 @@ function ExtraBtn({
         "rounded-2xl border px-2 py-2.5 text-[10px] font-bold active:scale-[0.98] transition-transform shadow-sm disabled:pointer-events-none disabled:opacity-50",
         danger
           ? "border-destructive/40 bg-destructive text-destructive-foreground"
-          : "border-border bg-card text-foreground"
+          : tone === "accent"
+            ? "border-primary/20 bg-primary/8 text-primary"
+            : tone === "soft"
+              ? "border-border bg-muted/40 text-foreground"
+              : "border-border bg-card text-foreground"
       )}
     >
       {label}
@@ -1795,11 +2338,13 @@ function KeyBtn({
   onClick,
   danger,
   disabled,
+  tone = "default",
 }: {
   children: string;
   onClick: () => void;
   danger?: boolean;
   disabled?: boolean;
+  tone?: "default" | "primary" | "muted";
 }) {
   return (
     <button
@@ -1807,8 +2352,14 @@ function KeyBtn({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "flex min-h-[50px] items-center justify-center rounded-2xl border border-border bg-card text-lg font-black shadow-sm active:scale-[0.97] transition-transform disabled:pointer-events-none disabled:opacity-50",
-        danger && "border-destructive/40 bg-destructive text-destructive-foreground"
+        "flex min-h-[52px] items-center justify-center rounded-2xl border text-lg font-black shadow-sm active:scale-[0.97] transition-transform disabled:pointer-events-none disabled:opacity-50",
+        danger
+          ? "border-destructive/40 bg-destructive text-destructive-foreground"
+          : tone === "primary"
+            ? "border-primary/20 bg-primary text-primary-foreground shadow-primary/20"
+            : tone === "muted"
+              ? "border-border bg-muted/40 text-foreground"
+              : "border-border bg-card text-foreground"
       )}
     >
       {children}
