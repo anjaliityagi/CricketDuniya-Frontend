@@ -17,6 +17,8 @@ import Teams from "../pages/Teams";
 import TeamDetail from "../pages/TeamDetail";
 import Signup from "../pages/Signup";
 import Profile from "../pages/Profile";
+import PlayerProfile from "../pages/PlayerProfile";
+import Players from "../pages/Players";
 
 export default function AppRoutes() {
   return (
@@ -117,6 +119,22 @@ export default function AppRoutes() {
                 <TeamDetail />
               </MainLayout>
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/players"
+          element={
+            <MainLayout>
+              <Players />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/players/:id"
+          element={
+            <MainLayout>
+              <PlayerProfile />
+            </MainLayout>
           }
         />
         <Route

@@ -572,9 +572,15 @@ function BackendLiveMatch({
                       key={player.match_team_player_id}
                       className="grid grid-cols-[1.6fr_repeat(5,minmax(0,0.5fr))] gap-2 px-3 py-2.5 text-sm"
                     >
-                      <span className="truncate font-medium text-primary">
-                        {player.player_name}{isStriker ? " *" : ""}
-                      </span>
+                      {player.user_id ? (
+                        <Link to={"/players/" + player.user_id} className="truncate font-medium text-primary hover:underline">
+                          {player.player_name}{isStriker ? " *" : ""}
+                        </Link>
+                      ) : (
+                        <span className="truncate font-medium text-primary">
+                          {player.player_name}{isStriker ? " *" : ""}
+                        </span>
+                      )}
                       <span className="text-center font-semibold">{player.runs_scored}</span>
                       <span className="text-center">{player.balls_faced}</span>
                       <span className="text-center">{player.fours}</span>
@@ -602,7 +608,13 @@ function BackendLiveMatch({
                   const economy = currentBowler.overs_bowled > 0 ? (currentBowler.runs_conceded / currentBowler.overs_bowled).toFixed(2) : "0.00";
                   return (
                     <div className="grid grid-cols-[1.6fr_repeat(5,minmax(0,0.5fr))] gap-2 px-3 py-2.5 text-sm">
-                      <span className="truncate font-medium text-primary">{currentBowler.player_name} *</span>
+                      {currentBowler.user_id ? (
+                        <Link to={"/players/" + currentBowler.user_id} className="truncate font-medium text-primary hover:underline">
+                          {currentBowler.player_name} *
+                        </Link>
+                      ) : (
+                        <span className="truncate font-medium text-primary">{currentBowler.player_name} *</span>
+                      )}
                       <span className="text-center">{currentBowler.overs_bowled}</span>
                       <span className="text-center">0</span>
                       <span className="text-center">{currentBowler.runs_conceded}</span>
@@ -836,7 +848,13 @@ function CompletedMatchSummary({
               return (
                 <div key={player.match_team_player_id} className="grid grid-cols-[minmax(0,1fr)_40px_40px_40px_40px_64px] items-center gap-2 border-b border-border/70 px-4 py-2.5">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold leading-5 text-primary break-words">{player.player_name}</p>
+                    {player.user_id ? (
+                      <Link to={"/players/" + player.user_id} className="text-sm font-semibold leading-5 text-primary break-words hover:underline">
+                        {player.player_name}
+                      </Link>
+                    ) : (
+                      <p className="text-sm font-semibold leading-5 text-primary break-words">{player.player_name}</p>
+                    )}
                     <p className="mt-0.5 text-xs text-muted-foreground">{player.is_out ? "out" : "not out"}</p>
                   </div>
                   <p className="text-right text-sm font-black text-foreground">{player.runs_scored}</p>
@@ -887,7 +905,13 @@ function CompletedMatchSummary({
           <div>
             {bowlingPlayers.map((player) => (
               <div key={player.match_team_player_id} className="grid grid-cols-[minmax(0,1fr)_40px_40px_40px_56px] items-center gap-2 border-b border-border/70 px-4 py-2.5 last:border-b-0">
-                <p className="text-sm font-semibold leading-5 text-primary break-words">{player.player_name}</p>
+                {player.user_id ? (
+                  <Link to={"/players/" + player.user_id} className="text-sm font-semibold leading-5 text-primary break-words hover:underline">
+                    {player.player_name}
+                  </Link>
+                ) : (
+                  <p className="text-sm font-semibold leading-5 text-primary break-words">{player.player_name}</p>
+                )}
                 <p className="text-right text-sm font-semibold text-foreground">{player.overs_bowled}</p>
                 <p className="text-right text-sm font-semibold text-foreground">{player.runs_conceded}</p>
                 <p className="text-right font-black text-foreground">{player.wickets_taken}</p>
@@ -900,12 +924,24 @@ function CompletedMatchSummary({
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl border border-primary/15 bg-primary/5 p-3.5">
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Man of the Match</p>
-            <p className="mt-1.5 text-base font-black text-foreground break-words">{manOfTheMatch?.player_name ?? "Not available"}</p>
+            {manOfTheMatch?.user_id ? (
+              <Link to={"/players/" + manOfTheMatch.user_id} className="mt-1.5 block text-base font-black text-foreground break-words hover:underline">
+                {manOfTheMatch.player_name}
+              </Link>
+            ) : (
+              <p className="mt-1.5 text-base font-black text-foreground break-words">{manOfTheMatch?.player_name ?? "Not available"}</p>
+            )}
             <p className="mt-1 text-xs font-semibold text-muted-foreground">{manOfTheMatch ? `${manOfTheMatch.fantasy_points} pts` : ""}</p>
           </div>
           <div className="rounded-2xl border border-border bg-muted/30 p-3.5">
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Worst Player</p>
-            <p className="mt-1.5 text-base font-black text-foreground break-words">{worstPlayer?.player_name ?? "Not available"}</p>
+            {worstPlayer?.user_id ? (
+              <Link to={"/players/" + worstPlayer.user_id} className="mt-1.5 block text-base font-black text-foreground break-words hover:underline">
+                {worstPlayer.player_name}
+              </Link>
+            ) : (
+              <p className="mt-1.5 text-base font-black text-foreground break-words">{worstPlayer?.player_name ?? "Not available"}</p>
+            )}
             <p className="mt-1 text-xs font-semibold text-muted-foreground">{worstPlayer ? `${worstPlayer.fantasy_points} pts` : ""}</p>
           </div>
         </div>

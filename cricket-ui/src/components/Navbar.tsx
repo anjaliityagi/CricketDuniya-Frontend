@@ -120,6 +120,9 @@ export default function Navbar() {
               <Link onClick={closeMenu} to="/teams" className={linkClass}>
                 Teams
               </Link>
+              <Link onClick={closeMenu} to="/players" className={linkClass}>
+                Players
+              </Link>
 
               <div className="pt-4 space-y-3">
                 {isAuthenticated ? (

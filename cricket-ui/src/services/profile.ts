@@ -44,12 +44,30 @@ export type FieldingStats = {
   run_outs: number;
 };
 
+export type RecentMatchPerformance = {
+  match_id: string;
+  match_date: string | null;
+  team_name: string;
+  opponent_name: string;
+  result: string;
+  runs_scored: number;
+  balls_faced: number;
+  wickets_taken: number;
+  runs_conceded: number;
+  overs_bowled: number;
+  catches: number;
+  stumping: number;
+  run_outs: number;
+  fantasy_points: number;
+};
+
 export type ProfileData = {
   user: ProfileUser;
   summary: ProfileSummary;
   batting: BattingStats;
   bowling: BowlingStats;
   fielding: FieldingStats;
+  recent_matches: RecentMatchPerformance[];
 };
 
 type ProfileResponse = {
@@ -67,6 +85,12 @@ export type UpdateProfilePayload = {
 
 export async function fetchProfile() {
   const { data } = await api.get<ProfileResponse>("/profile");
+
+  return data.data;
+}
+
+export async function fetchPlayerProfile(userId: string) {
+  const { data } = await api.get<ProfileResponse>("/users/" + userId + "/profile");
 
   return data.data;
 }
