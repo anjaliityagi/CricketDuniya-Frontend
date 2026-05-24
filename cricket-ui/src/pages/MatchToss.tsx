@@ -201,9 +201,6 @@ export default function MatchToss() {
               </Button>
             </div>
 
-            <Button type="button" variant="ghost" className="w-full" onClick={handleFlipCoin}>
-              Flip coin again
-            </Button>
           </CardContent>
         </Card>
       )}

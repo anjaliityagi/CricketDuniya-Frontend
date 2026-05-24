@@ -59,6 +59,9 @@ export type MatchInnings = {
   bowling_match_team_id: string;
   total_runs: number;
   total_wickets: number;
+  legal_balls: number;
+  current_over: number;
+  current_ball: number;
 };
 
 export type MatchSquadPlayer = {

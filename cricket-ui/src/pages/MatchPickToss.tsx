@@ -11,7 +11,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type TossWinner = "one" | "two" | "";
-type PickChoice = "first" | "second" | "";
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (axios.isAxiosError(error)) {
@@ -34,7 +33,6 @@ export default function MatchPickToss() {
   const firstPickMutation = useFirstPickMutation(id);
 
   const [tossWinner, setTossWinner] = useState<TossWinner>("");
-  const [pickChoice, setPickChoice] = useState<PickChoice>("");
   const [isFlipping, setIsFlipping] = useState(false);
   const [error, setError] = useState("");
 
@@ -76,7 +74,6 @@ export default function MatchPickToss() {
 
     setIsFlipping(true);
     setTossWinner("");
-    setPickChoice("");
     setError("");
 
     setTimeout(() => {
@@ -91,17 +88,9 @@ export default function MatchPickToss() {
       return;
     }
 
-    if (!pickChoice) {
-      setError("Please choose whether to pick first or second");
-      return;
-    }
-
     const winnerTeamId =
       tossWinner === "one" ? match.team_a_id : match.team_b_id;
-    const loserTeamId =
-      tossWinner === "one" ? match.team_b_id : match.team_a_id;
-    const firstPickTeamId =
-      pickChoice === "first" ? winnerTeamId : loserTeamId;
+    const firstPickTeamId = winnerTeamId;
 
     if (!firstPickTeamId) {
       setError("Team details are missing for this match");
@@ -129,7 +118,7 @@ export default function MatchPickToss() {
 
       <h1 className="text-2xl font-bold mb-1">Player Pick Toss</h1>
       <p className="text-muted-foreground text-sm mb-6">
-        Flip the coin to decide who picks players first
+        Flip the coin to decide who gets the first player pick. The toss winner always picks first.
       </p>
 
       <div className="flex flex-col items-center mb-8">
@@ -163,44 +152,6 @@ export default function MatchPickToss() {
         />
       </div>
 
-      {tossWinner && !isFlipping && (
-        <Card className="bg-card border-border mb-4">
-          <CardContent className="p-5 space-y-4">
-            <p className="text-sm font-semibold">
-              {winnerName} won the toss — choose pick order
-            </p>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant={pickChoice === "first" ? "default" : "outline"}
-                className="h-12"
-                onClick={() => {
-                  setPickChoice("first");
-                  setError("");
-                }}
-              >
-                Pick First
-              </Button>
-              <Button
-                type="button"
-                variant={pickChoice === "second" ? "default" : "outline"}
-                className="h-12"
-                onClick={() => {
-                  setPickChoice("second");
-                  setError("");
-                }}
-              >
-                Pick Second
-              </Button>
-            </div>
-
-            <Button type="button" variant="ghost" className="w-full" onClick={handleFlipCoin}>
-              Flip coin again
-            </Button>
-          </CardContent>
-        </Card>
-      )}
 
       {error && (
         <p className="text-sm font-medium text-destructive mb-4">{error}</p>

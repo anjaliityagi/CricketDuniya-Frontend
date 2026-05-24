@@ -398,8 +398,8 @@ function BackendLiveMatch({
   const currentNonStrikerId =
     liveState?.non_striker_id ?? scorecard.current_non_striker_id ?? "";
   const currentBowlerId = liveState?.bowler_id ?? scorecard.current_bowler_id ?? "";
-  const legalBalls = liveState?.legal_balls ?? 0;
-  const displayedOver = `${liveState?.current_over ?? 0}.${liveState?.current_ball ?? 0}`;
+  const legalBalls = liveState?.legal_balls ?? innings?.legal_balls ?? 0;
+  const displayedOver = `${liveState?.current_over ?? innings?.current_over ?? 0}.${liveState?.current_ball ?? innings?.current_ball ?? 0}`;
   const liveRunRate = getRunRate(displayedRuns, legalBalls);
   const battingTeamName =
     innings?.batting_match_team_id === match.team_a_match_team_id
@@ -532,6 +532,11 @@ function BackendLiveMatch({
                 <p className="truncate font-mono text-[32px] font-black tracking-tight text-foreground">
                   {battingTeamName} {displayedRuns} - {displayedWickets}
                 </p>
+                {chaseLine && (
+                  <p className="mt-1 truncate text-[11px] font-medium text-muted-foreground">
+                    Need {liveState?.required_runs_to_win} more in {liveState?.balls_remaining} balls
+                  </p>
+                )}
               </div>
               <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-right shadow-sm">
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Overs</p>
@@ -810,7 +815,7 @@ function CompletedMatchSummary({
           <div className="flex items-center justify-between gap-3 bg-primary px-4 py-2.5 text-primary-foreground">
             <p className="text-lg font-black tracking-tight">{getTeamName(selectedInnings.batting_match_team_id)}</p>
             <p className="font-mono text-lg font-black">
-              {selectedInnings.total_runs}-{selectedInnings.total_wickets} ({match.overs_per_side} Ov)
+              {selectedInnings.total_runs}-{selectedInnings.total_wickets} ({selectedInnings.current_over}.{selectedInnings.current_ball} Ov)
             </p>
           </div>
 
@@ -853,7 +858,7 @@ function CompletedMatchSummary({
             <div className="grid grid-cols-[minmax(0,1fr)_200px] items-center gap-2 border-b border-border/70 px-4 py-2.5">
               <p className="text-sm font-black text-foreground">Total</p>
               <p className="text-right text-sm font-black text-foreground">
-                {selectedInnings.total_runs}-{selectedInnings.total_wickets} ({match.overs_per_side} Overs)
+                {selectedInnings.total_runs}-{selectedInnings.total_wickets} ({selectedInnings.current_over}.{selectedInnings.current_ball} Overs)
               </p>
             </div>
 
