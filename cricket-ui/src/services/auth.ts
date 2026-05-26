@@ -11,6 +11,16 @@ export type SignupPayload = LoginPayload & {
   name: string;
 };
 
+export type ForgotPasswordPayload = {
+  phone: string;
+};
+
+export type VerifyOtpPayload = {
+  phone: string;
+  otp: string;
+  new_password: string;
+};
+
 export type AuthUser = {
   id?: string | number;
   name?: string;
@@ -45,6 +55,13 @@ export type SignupResponse = {
   data?: AuthUser;
   message?: string;
   success?: boolean;
+  [key: string]: unknown;
+};
+
+export type PasswordResetResponse = {
+  success?: boolean;
+  message?: string;
+  otp?: string;
   [key: string]: unknown;
 };
 
@@ -103,6 +120,24 @@ export async function signup(payload: SignupPayload) {
   };
 }
 
+export async function forgotPassword(payload: ForgotPasswordPayload) {
+  const { data } = await api.post<PasswordResetResponse>(
+    "/auth/forgot-password",
+    payload
+  );
+
+  return data;
+}
+
+export async function verifyOtp(payload: VerifyOtpPayload) {
+  const { data } = await api.post<PasswordResetResponse>(
+    "/auth/verify-otp",
+    payload
+  );
+
+  return data;
+}
+
 export async function logout() {
   try {
     await api.post("/logout");
@@ -126,6 +161,37 @@ export function getAuthErrorMessage(error: unknown) {
     }
 
     return data?.message ?? data?.error ?? "Login failed. Please try again.";
+  }
+
+  return "Something went wrong. Please try again.";
+}
+
+export function getPasswordResetErrorMessage(error: unknown) {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    const data = error.response?.data as
+      | { message?: string; error?: string }
+      | string
+      | undefined;
+    const message =
+      typeof data === "string" ? data : data?.message ?? data?.error ?? "";
+    const normalizedMessage = message.toLowerCase();
+
+    if (status === 400 && normalizedMessage.includes("expired otp")) {
+      return "OTP invalid/expired, request again";
+    }
+
+    if (status === 400 && normalizedMessage.includes("invalid")) {
+      return normalizedMessage.includes("otp")
+        ? "OTP invalid/expired, request again"
+        : "Please fill all required fields";
+    }
+
+    if (status === 500) {
+      return "Something went wrong. Please try again.";
+    }
+
+    return message || "Something went wrong. Please try again.";
   }
 
   return "Something went wrong. Please try again.";

@@ -6,6 +6,7 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import Home from "../pages/Home";
 import Landing from "../pages/Landing";
 import Login from "../pages/Login";
+import ForgotPassword from "../pages/ForgotPassword";
 import Matches from "../pages/Matches";
 import CreateMatch from "../pages/CreateMatch";
 import MatchDetail from "../pages/MatchDetail";
@@ -157,6 +158,7 @@ export default function AppRoutes() {
           }
         />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/signup" element={<Signup />} />
       </Routes>
     </BrowserRouter>
