@@ -26,6 +26,10 @@ export type BattingStats = {
   high_score: number;
   runs: number;
   innings: number;
+  ducks: number;
+  thirties: number;
+  fifties: number;
+  hundreds: number;
   fours: number;
   sixes: number;
 };

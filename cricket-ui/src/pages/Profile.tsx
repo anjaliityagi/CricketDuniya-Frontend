@@ -537,6 +537,10 @@ function BattingPanel({ stats }: { stats: BattingStats }) {
           ["High Score", stats.high_score],
           ["Runs", stats.runs],
           ["Innings", stats.innings],
+          ["Ducks", stats.ducks],
+          ["30s", stats.thirties],
+          ["50s", stats.fifties],
+          ["100s", stats.hundreds],
           ["Fours", stats.fours],
           ["Sixes", stats.sixes],
         ]}

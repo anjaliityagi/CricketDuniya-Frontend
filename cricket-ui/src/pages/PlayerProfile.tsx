@@ -205,6 +205,10 @@ function BattingPanel({ batting }: { batting: BattingStats }) {
         <StatBox label="Average" value={batting.average.toFixed(2)} />
         <StatBox label="Strike rate" value={batting.strike_rate.toFixed(2)} />
         <StatBox label="High score" value={batting.high_score} />
+        <StatBox label="Ducks" value={batting.ducks} />
+        <StatBox label="30s" value={batting.thirties} />
+        <StatBox label="50s" value={batting.fifties} />
+        <StatBox label="100s" value={batting.hundreds} />
         <StatBox label="Fours" value={batting.fours} />
         <StatBox label="Sixes" value={batting.sixes} />
       </CardContent>
