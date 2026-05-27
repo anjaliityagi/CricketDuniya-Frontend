@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { assignTeamWicketkeeper } from "@/services/players";
+import { assignTeamUmpire } from "@/services/players";
 
-export function useAssignWicketkeeperMutation(matchId?: string) {
+export function useAssignUmpireMutation(matchId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -12,7 +12,7 @@ export function useAssignWicketkeeperMutation(matchId?: string) {
     }: {
       playerId: string;
       teamId: string;
-    }) => assignTeamWicketkeeper(playerId, teamId),
+    }) => assignTeamUmpire(playerId, teamId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teams"] });
       queryClient.invalidateQueries({ queryKey: ["matches"] });

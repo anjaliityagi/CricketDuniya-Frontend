@@ -66,8 +66,9 @@ export default function MatchPickToss() {
     return null;
   }
 
+  const currentMatch = match;
   const winnerName =
-    tossWinner === "one" ? match.teamOneName : tossWinner === "two" ? match.teamTwoName : "";
+    tossWinner === "one" ? currentMatch.teamOneName : tossWinner === "two" ? currentMatch.teamTwoName : "";
 
   function handleFlipCoin() {
     if (isFlipping) return;
@@ -89,7 +90,7 @@ export default function MatchPickToss() {
     }
 
     const winnerTeamId =
-      tossWinner === "one" ? match.team_a_id : match.team_b_id;
+      tossWinner === "one" ? currentMatch.team_a_id : currentMatch.team_b_id;
     const firstPickTeamId = winnerTeamId;
 
     if (!firstPickTeamId) {

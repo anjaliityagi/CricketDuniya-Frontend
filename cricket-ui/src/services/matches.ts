@@ -33,6 +33,10 @@ type ApiMatch = {
   toss_winner_team_id?: string | null;
   first_pick_team_id?: string | null;
   winner_match_team_id?: string | null;
+  created_by?: string | number;
+  createdBy?: string | number;
+  host_user_id?: string | number;
+  hostUserId?: string | number;
   [key: string]: unknown;
 };
 
@@ -41,6 +45,11 @@ type MatchesResponse = {
   matches?: ApiMatch[];
   message?: string;
   success?: boolean;
+};
+
+type ApiScorecardPlayer = ScorecardPlayer & {
+  isOut?: boolean;
+  out?: boolean;
 };
 
 export type CreateMatchPayload = {
@@ -73,7 +82,7 @@ export type MatchSquadPlayer = {
   phone_number?: string;
   is_playing_xi: boolean;
   is_captain: boolean;
-  is_wicket_keeper: boolean;
+  is_umpire: boolean;
   batting_order: number | null;
   user?: {
     name?: string;
@@ -162,6 +171,7 @@ export type AddBallPayload = {
   ball_type: "normal" | "wide" | "no_ball" | "bye" | "leg_bye" | "wicket" | "dead_ball" | "retired_hurt";
   runs_off_bat: number;
   extras: number;
+  total_runs: number;
   is_wicket: boolean;
   dismissal_type?: string;
   dismissed_player_id?: string | null;
@@ -224,6 +234,7 @@ function normalizeMatch(match: ApiMatch): Match {
     teamTwoName,
     teamOneScore: match.teamOneScore ?? match.team_one_score ?? "—",
     teamTwoScore: match.teamTwoScore ?? match.team_two_score ?? "—",
+    match_date: match.match_date,
     matchNote:
       match.matchNote ??
       match.match_note ??
@@ -235,6 +246,10 @@ function normalizeMatch(match: ApiMatch): Match {
     team_a_match_team_id: match.team_a_match_team_id,
     team_b_match_team_id: match.team_b_match_team_id,
     winner_match_team_id: match.winner_match_team_id ?? undefined,
+    created_by: match.created_by,
+    createdBy: match.createdBy,
+    host_user_id: match.host_user_id,
+    hostUserId: match.hostUserId,
     first_pick_team_id: match.first_pick_team_id ?? undefined,
     tossDecision: match.toss_decision ?? undefined,
     tossWinner:
@@ -254,6 +269,17 @@ function getMatchesArray(response: MatchesResponse | ApiMatch[]) {
   if (Array.isArray(response.data?.data)) return response.data.data;
 
   return [];
+}
+
+function toBooleanFlag(value: unknown) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    return normalized === "true" || normalized === "1" || normalized === "out";
+  }
+
+  return false;
 }
 
 export async function fetchMatches() {
@@ -366,7 +392,7 @@ export async function updateMatchLineup(
     match_team_player_id: string;
     is_playing_xi: boolean;
     is_captain: boolean;
-    is_wicket_keeper: boolean;
+    is_umpire: boolean;
     batting_order: number | null;
   }>
 ) {
@@ -379,12 +405,18 @@ export async function fetchMatchScorecard(matchId: string) {
   const { data } = await api.get<{ success: boolean; data: MatchScorecard }>(
     `/matches/${matchId}/scorecard`
   );
+  const batting = Array.isArray(data.data?.batting)
+    ? (data.data.batting as ApiScorecardPlayer[]).map((player) => ({
+        ...player,
+        is_out: toBooleanFlag(player.is_out ?? player.isOut ?? player.out),
+      }))
+    : [];
 
   return {
     ...emptyScorecard,
     ...data.data,
     innings: Array.isArray(data.data?.innings) ? data.data.innings : [],
-    batting: Array.isArray(data.data?.batting) ? data.data.batting : [],
+    batting,
     bowling: Array.isArray(data.data?.bowling) ? data.data.bowling : [],
     recent_balls: Array.isArray(data.data?.recent_balls)
       ? data.data.recent_balls

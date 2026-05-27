@@ -28,6 +28,20 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function getScheduledStartDate(value?: string) {
+  if (!value) return null;
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatScheduledStart(date: Date) {
+  return date.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 export default function MatchToss() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -60,10 +74,6 @@ export default function MatchToss() {
   const captainsReady =
     teamAPlayers.some((player) => player.is_captain) &&
     teamBPlayers.some((player) => player.is_captain);
-  const wicketkeepersReady =
-    squad.some((player) => player.is_wicket_keeper) ||
-    (id ? sessionStorage.getItem(`cricket_match_roles_ready_${id}`) === "true" : false);
-
   useEffect(() => {
     if (!match || !id) return;
 
@@ -77,7 +87,7 @@ export default function MatchToss() {
       !tossAlreadyDone &&
       teamAPlayers.length > 0 &&
       teamBPlayers.length > 0 &&
-      (!captainsReady || !wicketkeepersReady)
+      !captainsReady
     ) {
       navigate(`/matches/${id}/captains`, { replace: true });
       return;
@@ -95,7 +105,6 @@ export default function MatchToss() {
     teamAPlayers.length,
     teamBPlayers.length,
     tossAlreadyDone,
-    wicketkeepersReady,
   ]);
 
   if (isLoading || isLoadingSquad) {
@@ -122,10 +131,25 @@ export default function MatchToss() {
     return null;
   }
 
+  const matchId = id;
+  const currentMatch = match;
+  const scheduledStartDate = getScheduledStartDate(currentMatch.match_date);
+  const startsInFuture =
+    typeof scheduledStartDate?.getTime() === "number" &&
+    scheduledStartDate.getTime() > Date.now();
+  const scheduledStartMessage = scheduledStartDate
+    ? `This match will start at ${formatScheduledStart(scheduledStartDate)}.`
+    : "";
+
   const winnerName =
-    tossWinner === "one" ? match.teamOneName : tossWinner === "two" ? match.teamTwoName : "";
+    tossWinner === "one" ? currentMatch.teamOneName : tossWinner === "two" ? currentMatch.teamTwoName : "";
 
   function handleFlipCoin() {
+    if (startsInFuture) {
+      setError(scheduledStartMessage);
+      return;
+    }
+
     if (isFlipping) return;
 
     setIsFlipping(true);
@@ -140,6 +164,11 @@ export default function MatchToss() {
   }
 
   async function handleConfirm() {
+    if (startsInFuture) {
+      setError(scheduledStartMessage);
+      return;
+    }
+
     if (!tossWinner) {
       setError("Please flip the coin first");
       return;
@@ -150,7 +179,7 @@ export default function MatchToss() {
       return;
     }
 
-    const winnerTeamId = tossWinner === "one" ? match.team_a_id : match.team_b_id;
+    const winnerTeamId = tossWinner === "one" ? currentMatch.team_a_id : currentMatch.team_b_id;
 
     if (!winnerTeamId) {
       setError("Team details are missing for this match");
@@ -159,11 +188,11 @@ export default function MatchToss() {
 
     try {
       await tossMutation.mutateAsync({
-        match_id: id,
+        match_id: matchId,
         toss_winner_team_id: winnerTeamId,
         decision: tossDecision,
       });
-      navigate(`/matches/${id}`);
+      navigate(`/matches/${matchId}`);
     } catch (err) {
       setError(getErrorMessage(err, "Could not submit toss. Please try again."));
     }
@@ -183,6 +212,16 @@ export default function MatchToss() {
       <p className="text-muted-foreground text-sm mb-6">
         Flip the coin, then choose bat or bowl. The match will start after toss.
       </p>
+
+      {startsInFuture && (
+        <Card className="bg-card border-border mb-4">
+          <CardContent className="p-5">
+            <p className="text-sm font-semibold text-foreground">
+              {scheduledStartMessage}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex flex-col items-center mb-8">
         <TossCoin isFlipping={isFlipping} onFlip={handleFlipCoin} />
@@ -252,10 +291,14 @@ export default function MatchToss() {
       <Button
         className="w-full h-11"
         onClick={handleConfirm}
-        disabled={isFlipping || tossMutation.isPending}
+        disabled={startsInFuture || isFlipping || tossMutation.isPending}
       >
         {tossMutation.isPending && <Loader2 className="animate-spin" size={16} />}
-        {tossMutation.isPending ? "Starting match..." : "Confirm Toss & Start Match"}
+        {startsInFuture
+          ? "Match Not Started Yet"
+          : tossMutation.isPending
+            ? "Starting match..."
+            : "Confirm Toss & Start Match"}
       </Button>
     </div>
   );

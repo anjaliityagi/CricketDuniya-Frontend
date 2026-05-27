@@ -1,9 +1,10 @@
 import { Navigate, useLocation } from "react-router-dom";
+import type { ReactNode } from "react";
 
 import { useAuth } from "@/context/AuthContext";
 
 type ProtectedRouteProps = {
-  children: JSX.Element;
+  children: ReactNode;
   redirectTo?: string;
   message?: string;
 };

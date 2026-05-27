@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAssignCaptainMutation } from "@/hooks/useAssignCaptainMutation";
-import { useAssignWicketkeeperMutation } from "@/hooks/useAssignWicketkeeperMutation";
+import { useAssignUmpireMutation } from "@/hooks/useAssignUmpireMutation";
 import { useMatchQuery } from "@/hooks/useMatchQuery";
 import { useMatchSquadQuery } from "@/hooks/useMatchSquadQuery";
 import { useUserSearchQuery } from "@/hooks/useUserSearchQuery";
@@ -65,10 +65,11 @@ export default function MatchCaptainSelection() {
     refetch,
   } = useMatchSquadQuery(id);
   const assignCaptainMutation = useAssignCaptainMutation(id);
-  const assignWicketkeeperMutation = useAssignWicketkeeperMutation(id);
+  const assignUmpireMutation = useAssignUmpireMutation(id);
   const [teamACaptainId, setTeamACaptainId] = useState("");
   const [teamBCaptainId, setTeamBCaptainId] = useState("");
-  const [scorerWicketkeeperId, setScorerWicketkeeperId] = useState("");
+  const [primaryScorerUmpireId, setPrimaryScorerUmpireId] = useState("");
+  const [secondaryScorerUmpireId, setSecondaryScorerUmpireId] = useState("");
   const [error, setError] = useState("");
 
   const teamOptions = useMemo<TeamCaptainOption[]>(() => {
@@ -124,14 +125,17 @@ export default function MatchCaptainSelection() {
   }, [teamB, teamBCaptainId]);
 
   useEffect(() => {
-    if ((!teamA && !teamB) || scorerWicketkeeperId) return;
-    const wicketkeeper = [...(teamA?.players ?? []), ...(teamB?.players ?? [])].find(
-      (player) => player.is_wicket_keeper
+    const selectedUmpires = [...(teamA?.players ?? []), ...(teamB?.players ?? [])].filter(
+      (player) => player.is_umpire
     );
-    if (wicketkeeper) {
-      setScorerWicketkeeperId(getRolePlayerId(wicketkeeper));
+
+    if (!primaryScorerUmpireId && selectedUmpires[0]) {
+      setPrimaryScorerUmpireId(getRolePlayerId(selectedUmpires[0]));
     }
-  }, [teamA, teamB, scorerWicketkeeperId]);
+    if (!secondaryScorerUmpireId && selectedUmpires[1]) {
+      setSecondaryScorerUmpireId(getRolePlayerId(selectedUmpires[1]));
+    }
+  }, [primaryScorerUmpireId, secondaryScorerUmpireId, teamA, teamB]);
 
   useEffect(() => {
     if (!match || !id) return;
@@ -144,20 +148,31 @@ export default function MatchCaptainSelection() {
   async function handleContinue() {
     if (!id || !teamA || !teamB) return;
 
-    if (!teamACaptainId || !teamBCaptainId || !scorerWicketkeeperId) {
-      setError("Select captains and scorer/wicketkeeper");
+    if (!teamACaptainId || !teamBCaptainId) {
+      setError("Select captains");
       return;
     }
 
-    const selectedWicketkeeperSquadPlayer = [
-      ...teamA.players,
-      ...teamB.players,
-    ].find((player) => getRolePlayerId(player) === scorerWicketkeeperId);
-    const wicketkeeperTeamId =
-      selectedWicketkeeperSquadPlayer?.match_team_id === teamB.matchTeamId ||
-      selectedWicketkeeperSquadPlayer?.match_team_id === teamB.teamId
+    if (
+      primaryScorerUmpireId &&
+      secondaryScorerUmpireId &&
+      primaryScorerUmpireId === secondaryScorerUmpireId
+    ) {
+      setError("Choose two different scorer/umpires");
+      return;
+    }
+
+    const allTeamPlayers = [...teamA.players, ...teamB.players];
+    function getUmpireTeamId(playerId: string) {
+      const selectedUmpireSquadPlayer = allTeamPlayers.find(
+        (player) => getRolePlayerId(player) === playerId
+      );
+
+      return selectedUmpireSquadPlayer?.match_team_id === teamB.matchTeamId ||
+        selectedUmpireSquadPlayer?.match_team_id === teamB.teamId
         ? teamB.teamId
         : teamA.teamId;
+    }
 
     setError("");
 
@@ -170,10 +185,18 @@ export default function MatchCaptainSelection() {
         playerId: teamBCaptainId,
         teamId: teamB.teamId,
       });
-      await assignWicketkeeperMutation.mutateAsync({
-        playerId: scorerWicketkeeperId,
-        teamId: wicketkeeperTeamId,
-      });
+      if (primaryScorerUmpireId) {
+        await assignUmpireMutation.mutateAsync({
+          playerId: primaryScorerUmpireId,
+          teamId: getUmpireTeamId(primaryScorerUmpireId),
+        });
+      }
+      if (secondaryScorerUmpireId) {
+        await assignUmpireMutation.mutateAsync({
+          playerId: secondaryScorerUmpireId,
+          teamId: getUmpireTeamId(secondaryScorerUmpireId),
+        });
+      }
       sessionStorage.setItem(`cricket_match_roles_ready_${id}`, "true");
       await refetch();
       navigate(`/matches/${id}/toss`);
@@ -234,10 +257,10 @@ export default function MatchCaptainSelection() {
           <div className="mb-4 rounded-xl border border-border bg-muted/70 p-3">
             <div className="flex items-center gap-2">
               <Shield size={16} className="text-primary" />
-              <p className="text-sm font-bold">Choose captains and scorer/wicketkeeper</p>
+              <p className="text-sm font-bold">Choose captains and scorer/umpire</p>
             </div>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Captains come from selected squads. Scorer/wicketkeeper can be any user.
+              Captains come from selected squads. Scorer/umpires can be any users.
             </p>
           </div>
 
@@ -262,19 +285,39 @@ export default function MatchCaptainSelection() {
                 }}
               />
             )}
-            <ScorerWicketkeeperCard
-              value={scorerWicketkeeperId}
+            <ScorerUmpireCard
+              title="Primary Scorer/Umpire"
+              value={primaryScorerUmpireId}
               onChange={(value) => {
-                setScorerWicketkeeperId(value);
+                setPrimaryScorerUmpireId(value);
                 setError("");
               }}
               selectedFallback={
                 [...(teamA?.players ?? []), ...(teamB?.players ?? [])].find(
-                  (player) => getRolePlayerId(player) === scorerWicketkeeperId
+                  (player) => getRolePlayerId(player) === primaryScorerUmpireId
                 )
                   ? getPlayerLabel(
                       [...(teamA?.players ?? []), ...(teamB?.players ?? [])].find(
-                        (player) => getRolePlayerId(player) === scorerWicketkeeperId
+                        (player) => getRolePlayerId(player) === primaryScorerUmpireId
+                      )!
+                    )
+                  : ""
+              }
+            />
+            <ScorerUmpireCard
+              title="Secondary Scorer/Umpire"
+              value={secondaryScorerUmpireId}
+              onChange={(value) => {
+                setSecondaryScorerUmpireId(value);
+                setError("");
+              }}
+              selectedFallback={
+                [...(teamA?.players ?? []), ...(teamB?.players ?? [])].find(
+                  (player) => getRolePlayerId(player) === secondaryScorerUmpireId
+                )
+                  ? getPlayerLabel(
+                      [...(teamA?.players ?? []), ...(teamB?.players ?? [])].find(
+                        (player) => getRolePlayerId(player) === secondaryScorerUmpireId
                       )!
                     )
                   : ""
@@ -317,16 +360,16 @@ export default function MatchCaptainSelection() {
         disabled={
           !hasPlayers ||
           assignCaptainMutation.isPending ||
-          assignWicketkeeperMutation.isPending
+          assignUmpireMutation.isPending
         }
         onClick={handleContinue}
       >
-        {assignCaptainMutation.isPending || assignWicketkeeperMutation.isPending ? (
+        {assignCaptainMutation.isPending || assignUmpireMutation.isPending ? (
           <Loader2 className="animate-spin" size={16} />
         ) : (
           <ArrowRight size={16} />
         )}
-        {assignCaptainMutation.isPending || assignWicketkeeperMutation.isPending
+        {assignCaptainMutation.isPending || assignUmpireMutation.isPending
           ? "Saving roles..."
           : "Continue to Toss"}
       </Button>
@@ -386,11 +429,13 @@ function TeamRoleSelectCard({
   );
 }
 
-function ScorerWicketkeeperCard({
+function ScorerUmpireCard({
+  title,
   value,
   onChange,
   selectedFallback,
 }: {
+  title: string;
   value: string;
   onChange: (value: string) => void;
   selectedFallback: string;
@@ -404,9 +449,9 @@ function ScorerWicketkeeperCard({
     >
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-base font-black">Scorer/Wicketkeeper</p>
+          <p className="truncate text-base font-black">{title}</p>
           <p className="text-xs font-medium text-muted-foreground">
-            Search and select one user for this match
+            Search and select one user for this role
           </p>
         </div>
         <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
@@ -414,9 +459,9 @@ function ScorerWicketkeeperCard({
         </span>
       </div>
 
-      <WicketkeeperSearchSelect
+      <UmpireSearchSelect
         icon={ShieldCheck}
-        label="Scorer/Wicketkeeper"
+        label="Scorer/Umpire"
         placeholder="Search all users by name or phone"
         value={value}
         onChange={onChange}
@@ -469,7 +514,7 @@ function PlayerRoleSelect({
   );
 }
 
-function WicketkeeperSearchSelect({
+function UmpireSearchSelect({
   icon: Icon,
   label,
   placeholder,

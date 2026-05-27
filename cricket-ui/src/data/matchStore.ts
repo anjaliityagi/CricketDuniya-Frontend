@@ -58,7 +58,7 @@ export function formatScore(runs: number, wickets: number) {
 function getBattingAndBowlingTeam(
   tossWinner: "one" | "two",
   tossDecision: "bat" | "bowl"
-) {
+): { batting: "one" | "two"; bowling: "one" | "two" } {
   if (tossDecision === "bat") {
     return {
       batting: tossWinner,
@@ -238,7 +238,9 @@ export function recordWicket(id: string) {
   if (!match.striker || !match.currentBowler) return;
 
   const teamScore = getBattingScore(match);
-  if (teamScore.wickets >= 10) return;
+  const battingPlayers = match.battingTeam ? getTeamPlayers(match, match.battingTeam) : [];
+  const maxPossibleWickets = Math.max(battingPlayers.length - 1, 0);
+  if (maxPossibleWickets > 0 && teamScore.wickets >= maxPossibleWickets) return;
 
   setBattingScore(match, teamScore.runs, teamScore.wickets + 1);
 

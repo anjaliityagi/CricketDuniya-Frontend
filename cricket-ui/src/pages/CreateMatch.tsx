@@ -22,6 +22,19 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function normalizeTeamName(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function getTeamNameKey(value: string) {
+  return normalizeTeamName(value).toLowerCase();
+}
+
+function toDatetimeLocalValue(date: Date) {
+  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
 export default function CreateMatch() {
   const navigate = useNavigate();
   const createMatchMutation = useCreateMatchMutation();
@@ -30,15 +43,20 @@ export default function CreateMatch() {
   const [teamBName, setTeamBName] = useState("");
   const [location, setLocation] = useState("");
   const [matchDate, setMatchDate] = useState("");
+  const [startNow, setStartNow] = useState(false);
   const [overs, setOvers] = useState("20");
   const [error, setError] = useState("");
+  const minimumMatchDate = toDatetimeLocalValue(new Date());
 
   function validateForm() {
-    if (!teamAName.trim() || !teamBName.trim()) {
+    const normalizedTeamAName = normalizeTeamName(teamAName);
+    const normalizedTeamBName = normalizeTeamName(teamBName);
+
+    if (!normalizedTeamAName || !normalizedTeamBName) {
       return "Please enter both team names";
     }
 
-    if (teamAName.trim().toLowerCase() === teamBName.trim().toLowerCase()) {
+    if (getTeamNameKey(teamAName) === getTeamNameKey(teamBName)) {
       return "Please use two different team names";
     }
 
@@ -46,8 +64,12 @@ export default function CreateMatch() {
       return "Please enter match location";
     }
 
-    if (!matchDate) {
+    if (!startNow && !matchDate) {
       return "Please select match date";
+    }
+
+    if (!startNow && new Date(matchDate).getTime() < Date.now()) {
+      return "Match date and time cannot be before current time";
     }
 
     const oversNumber = Number(overs);
@@ -70,11 +92,14 @@ export default function CreateMatch() {
     setError("");
 
     try {
+      const normalizedTeamAName = normalizeTeamName(teamAName);
+      const normalizedTeamBName = normalizeTeamName(teamBName);
+
       const newMatch = await createMatchMutation.mutateAsync({
-        team_a_name: teamAName.trim(),
-        team_b_name: teamBName.trim(),
+        team_a_name: normalizedTeamAName,
+        team_b_name: normalizedTeamBName,
         location: location.trim(),
-        match_date: new Date(matchDate).toISOString(),
+        match_date: (startNow ? new Date() : new Date(matchDate)).toISOString(),
         overs_per_innings: Number(overs),
       });
 
@@ -151,16 +176,32 @@ export default function CreateMatch() {
 
             <div className="grid grid-cols-[1fr_96px] gap-3">
               <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Match Date
-                </label>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <label className="block text-sm font-semibold">
+                    Match Date
+                  </label>
+                  <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={startNow}
+                      onChange={(e) => {
+                        setStartNow(e.target.checked);
+                        setError("");
+                      }}
+                      className="size-4 accent-primary"
+                    />
+                    Start now
+                  </label>
+                </div>
                 <Input
                   type="datetime-local"
                   value={matchDate}
+                  min={minimumMatchDate}
                   onChange={(e) => {
                     setMatchDate(e.target.value);
                     setError("");
                   }}
+                  disabled={startNow}
                 />
               </div>
 

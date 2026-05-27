@@ -68,7 +68,7 @@ export default function MatchPlayerSetup() {
 
   function updatePlayer(
     playerId: string,
-    patch: Partial<Pick<EditableSquadPlayer, "selected" | "is_captain" | "is_wicket_keeper" | "order">>
+    patch: Partial<Pick<EditableSquadPlayer, "selected" | "is_captain" | "is_umpire" | "order">>
   ) {
     setPlayers((current) =>
       current.map((player) =>
@@ -90,7 +90,7 @@ export default function MatchPlayerSetup() {
           match_team_player_id: player.match_team_player_id,
           is_playing_xi: player.selected,
           is_captain: player.is_captain,
-          is_wicket_keeper: player.is_wicket_keeper,
+          is_umpire: player.is_umpire,
           batting_order: player.order ? Number(player.order) : null,
         }))
       );
@@ -139,7 +139,7 @@ export default function MatchPlayerSetup() {
 
       <h1 className="text-2xl font-bold mb-1">Match Lineup</h1>
       <p className="text-muted-foreground text-sm mb-6">
-        Select playing XI, captain, keeper and batting order
+        Select playing XI, captain, umpire and batting order
       </p>
 
       <div className="grid grid-cols-2 gap-2 mb-4">
@@ -208,14 +208,14 @@ export default function MatchPlayerSetup() {
                   <label className="flex items-center gap-2 text-xs font-medium">
                     <input
                       type="checkbox"
-                      checked={player.is_wicket_keeper}
+                      checked={player.is_umpire}
                       onChange={(event) =>
                         updatePlayer(player.match_team_player_id, {
-                          is_wicket_keeper: event.target.checked,
+                          is_umpire: event.target.checked,
                         })
                       }
                     />
-                    WK
+                    Umpire
                   </label>
                   <Input
                     type="number"

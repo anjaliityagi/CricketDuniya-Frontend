@@ -34,7 +34,12 @@ export type Match = {
   team_a_match_team_id?: string;
   team_b_match_team_id?: string;
   winner_match_team_id?: string;
+  created_by?: string | number;
+  createdBy?: string | number;
+  host_user_id?: string | number;
+  hostUserId?: string | number;
   matchNote?: string;
+  match_date?: string;
   overs_per_side: number;
   venue?: string;
   teamOnePlayers?: MatchPlayer[];

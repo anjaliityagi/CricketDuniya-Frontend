@@ -27,16 +27,20 @@ import { useBallMutation } from "@/hooks/useBallMutation";
 import { useMatchQuery } from "@/hooks/useMatchQuery";
 import { useMatchScorecardQuery } from "@/hooks/useMatchScorecardQuery";
 import { useMatchSquadQuery } from "@/hooks/useMatchSquadQuery";
+import { useProfileQuery } from "@/hooks/useProfileQuery";
+import { useAuth } from "@/context/AuthContext";
 import {
   completeMatch,
   type AddBallPayload,
   type BallResponse,
   type InningsState,
   type MatchScorecard,
+  type ScorecardPlayer,
   type MatchSquadPlayer,
   undoLastBall,
   updateInningsState,
 } from "@/services/matches";
+import type { AuthUser } from "@/services/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -55,9 +59,49 @@ function getApiErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function getIdKey(value: unknown) {
+  return value === undefined || value === null ? "" : String(value);
+}
+
+function getCurrentUserId(user: AuthUser | null) {
+  return (
+    getIdKey(user?.id) ||
+    getIdKey(user?.user_id) ||
+    getIdKey(user?.userId) ||
+    getIdKey(user?._id)
+  );
+}
+
+function canUserUpdateScore(
+  user: AuthUser | null,
+  match: NonNullable<ReturnType<typeof getMatchById>>,
+  squad: MatchSquadPlayer[]
+) {
+  const userId = getCurrentUserId(user);
+
+  if (!userId) return false;
+
+  const hostIds = [
+    match.created_by,
+    match.createdBy,
+    match.host_user_id,
+    match.hostUserId,
+  ].map(getIdKey);
+
+  if (hostIds.includes(userId)) return true;
+
+  return squad.some(
+    (player) =>
+      player.is_umpire &&
+      [player.user_id, player.match_team_player_id].map(getIdKey).includes(userId)
+  );
+}
+
 export default function MatchDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
+  const { data: profile } = useProfileQuery(isAuthenticated);
   const {
     data: apiMatch,
     isLoading,
@@ -80,6 +124,7 @@ export default function MatchDetail() {
   const { data: squad = [] } = useMatchSquadQuery(id);
   const ballMutation = useBallMutation(id);
   const [match, setMatch] = useState(() => getMatchById(id || ""));
+  const [scheduleError, setScheduleError] = useState("");
 
   useEffect(() => {
     if (apiMatch) {
@@ -111,47 +156,58 @@ export default function MatchDetail() {
     );
   }
 
-  const title = `${match.teamOneName} vs ${match.teamTwoName}`;
-  const isLive = match.status === "live";
-  const isCompleted = match.status === "completed";
+  const currentMatch = match;
+  const title = `${currentMatch.teamOneName} vs ${currentMatch.teamTwoName}`;
+  const isLive = currentMatch.status === "live";
+  const isCompleted = currentMatch.status === "completed";
   const showScorecard = isLive || isCompleted;
+  const currentUser = getCurrentUserId(user) ? user : profile?.user ?? user;
+  const canUpdateScore = canUserUpdateScore(currentUser, currentMatch, squad);
 
   const battingTeamName =
-    match.battingTeam === "one" ? match.teamOneName : match.teamTwoName;
+    currentMatch.battingTeam === "one" ? currentMatch.teamOneName : currentMatch.teamTwoName;
   const bowlingTeamName =
-    match.battingTeam === "one" ? match.teamTwoName : match.teamOneName;
+    currentMatch.battingTeam === "one" ? currentMatch.teamTwoName : currentMatch.teamOneName;
 
   const battingScore =
-    match.battingTeam === "one"
-      ? parseScore(match.teamOneScore)
-      : parseScore(match.teamTwoScore);
+    currentMatch.battingTeam === "one"
+      ? parseScore(currentMatch.teamOneScore)
+      : parseScore(currentMatch.teamTwoScore);
 
   const bowlingScore =
-    match.battingTeam === "one"
-      ? parseScore(match.teamTwoScore)
-      : parseScore(match.teamOneScore);
+    currentMatch.battingTeam === "one"
+      ? parseScore(currentMatch.teamTwoScore)
+      : parseScore(currentMatch.teamOneScore);
 
-  const overText = getOverDisplay(match.inningsBalls || 0);
-  const runRate = getRunRate(battingScore.runs, match.inningsBalls || 0);
+  const overText = getOverDisplay(currentMatch.inningsBalls || 0);
+  const runRate = getRunRate(battingScore.runs, currentMatch.inningsBalls || 0);
 
   function handleStartMatch() {
     if (!id) return;
+    const startDate = getScheduledStartDate(currentMatch.match_date);
+
+    if (startDate && startDate.getTime() > Date.now()) {
+      setScheduleError(`This match will start at ${formatScheduledStart(startDate)}.`);
+      return;
+    }
+
+    setScheduleError("");
     navigate(`/matches/${id}/toss`);
   }
 
   async function handleEndMatch() {
     if (!id) return;
-    if (match.team_a_id || match.team_b_id) {
-      const teamOneScore = parseScore(match.teamOneScore);
-      const teamTwoScore = parseScore(match.teamTwoScore);
+    if (currentMatch.team_a_id || currentMatch.team_b_id) {
+      const teamOneScore = parseScore(currentMatch.teamOneScore);
+      const teamTwoScore = parseScore(currentMatch.teamTwoScore);
       const winnerId =
         teamOneScore.runs >= teamTwoScore.runs
-          ? match.team_a_match_team_id ?? match.team_a_id
-          : match.team_b_match_team_id ?? match.team_b_id;
+          ? currentMatch.team_a_match_team_id ?? currentMatch.team_a_id
+          : currentMatch.team_b_match_team_id ?? currentMatch.team_b_id;
 
       if (winnerId) {
         await completeMatch(id, winnerId);
-        setMatch({ ...match, status: "completed" });
+        setMatch({ ...currentMatch, status: "completed" });
         return;
       }
     }
@@ -164,7 +220,7 @@ export default function MatchDetail() {
     <div
       className={cn(
         "max-w-[430px] mx-auto min-h-dvh pb-6",
-        isLive && showScorecard && "pb-[calc(min(40vh,380px)+1rem)]"
+        isLive && showScorecard && canUpdateScore && "pb-[calc(min(40vh,380px)+1rem)]"
       )}
     >
       <Link
@@ -196,7 +252,12 @@ export default function MatchDetail() {
       </div>
 
       {match.status === "scheduled" && (
-        <ScheduledView match={match} id={id!} onStart={handleStartMatch} />
+        <ScheduledView
+          match={match}
+          id={id!}
+          scheduleError={scheduleError}
+          onStart={handleStartMatch}
+        />
       )}
 
       {showScorecard && isBackendMatch && isScorecardLoading && (
@@ -223,6 +284,7 @@ export default function MatchDetail() {
           squad={squad}
           isLive={isLive}
           isCompleted={isCompleted}
+          canUpdateScore={canUpdateScore}
           isSavingBall={ballMutation.isPending}
           onAddBall={(payload) => ballMutation.mutateAsync(payload)}
           onEndMatch={handleEndMatch}
@@ -304,7 +366,7 @@ export default function MatchDetail() {
             </CardContent>
           </Card>
 
-          {isLive && id && match.battingTeam && (
+          {isLive && canUpdateScore && id && match.battingTeam && (
             <FixedScoreKeyboard
               teamName={battingTeamName}
               battingSquadNames={getSquadPlayers(match, match.battingTeam).map(
@@ -372,6 +434,7 @@ function BackendLiveMatch({
   squad,
   isLive,
   isCompleted,
+  canUpdateScore,
   isSavingBall,
   onAddBall,
   onEndMatch,
@@ -381,6 +444,7 @@ function BackendLiveMatch({
   squad: MatchSquadPlayer[];
   isLive: boolean;
   isCompleted: boolean;
+  canUpdateScore: boolean;
   isSavingBall: boolean;
   onAddBall: (payload: AddBallPayload) => Promise<BallResponse>;
   onEndMatch: () => void;
@@ -481,7 +545,7 @@ function BackendLiveMatch({
   const resultText = winnerName
     ? secondInnings && firstInnings
       ? secondInnings.total_runs > firstInnings.total_runs
-        ? `${winnerName} won by ${Math.max(10 - secondInnings.total_wickets, 0)} wickets`
+        ? `${winnerName} won by ${getRemainingWickets(secondInnings, squad)} wickets`
         : `${winnerName} won by ${Math.max(firstInnings.total_runs - secondInnings.total_runs, 0)} runs`
       : `${winnerName} won the match`
     : "Match completed";
@@ -665,7 +729,7 @@ function BackendLiveMatch({
           </div>
         </CardContent>
       </Card>
-      {isLive && (
+      {isLive && canUpdateScore && !liveState?.innings_completed && (
         <BackendScoreKeyboard
           match={match}
           scorecard={scorecard}
@@ -679,6 +743,14 @@ function BackendLiveMatch({
           onAddBall={onAddBall}
           onEndMatch={onEndMatch}
         />
+      )}
+
+      {isLive && canUpdateScore && liveState?.innings_completed && (
+        <Card className="border-primary/20 bg-primary/10">
+          <CardContent className="p-4 text-sm font-semibold text-primary">
+            Innings complete. Waiting for the match state to refresh.
+          </CardContent>
+        </Card>
       )}
 
       {isCompleted && (
@@ -1063,7 +1135,23 @@ function BackendScoreKeyboard({
   const eligibleNextBowlerOptions = bowlingOptions.filter(
     (player) => player.match_team_player_id !== currentBowlerId
   );
-  const isScoringLocked = isUpdatingState || Boolean(liveState?.needs_next_bowler) || isBowlerDialogOpen;
+  const allowSingleBatterSetup = battingOptions.length >= 1;
+  const isInningsComplete = Boolean(liveState?.innings_completed);
+  const isScoringLocked =
+    isUpdatingState ||
+    isInningsComplete ||
+    Boolean(liveState?.needs_next_bowler) ||
+    isBowlerDialogOpen;
+
+  useEffect(() => {
+    if (!allowSingleBatterSetup) return;
+
+    const onlyBatterId = battingOptions[0]?.match_team_player_id;
+    if (!onlyBatterId) return;
+
+    setStrikerId((current) => current || onlyBatterId);
+    setNonStrikerId((current) => current || onlyBatterId);
+  }, [allowSingleBatterSetup, battingOptions]);
 
   async function submitBall(options: {
     runs: number;
@@ -1082,6 +1170,10 @@ function BackendScoreKeyboard({
     }
 
     if (isScoringLocked) {
+      if (isInningsComplete) {
+        setError("Innings completed by backend. Scoring is stopped.");
+        return;
+      }
       setIsBowlerDialogOpen(true);
       setError(isUpdatingState ? "Saving next bowler..." : "Choose a new bowler for the next over");
       return;
@@ -1097,6 +1189,7 @@ function BackendScoreKeyboard({
       ball_type: options.ballType ?? "normal",
       runs_off_bat: options.runsOffBat ?? options.runs,
       extras: options.extras ?? 0,
+      total_runs: (options.runsOffBat ?? options.runs) + (options.extras ?? 0),
       is_wicket: Boolean(options.isWicket),
     };
 
@@ -1116,6 +1209,9 @@ function BackendScoreKeyboard({
       const response = await onAddBall(payload);
       if (response.state) {
         onStateChange(response.state);
+        if (response.state.innings_completed) {
+          setError("Innings completed by backend. Scoring is stopped.");
+        }
         if (response.state.needs_next_bowler) {
           setIsBowlerDialogOpen(true);
           setBowlerId("");
@@ -1179,17 +1275,13 @@ function BackendScoreKeyboard({
       setError("Choose the dismissed batter");
       return;
     }
-    if (!incidentNextBatterId && nextBatterOptions.length > 0) {
-      setError("Choose the next batter");
-      return;
-    }
     if (["caught", "run_out", "stumped"].includes(incidentDismissalType) && !incidentFielderId) {
       setError("Choose the fielder involved");
       return;
     }
     await submitBall({
       runs: 0,
-      ballType: "wicket",
+      ballType: "normal",
       isWicket: true,
       dismissalType: incidentDismissalType,
       dismissedPlayerId: incidentDismissedPlayerId,
@@ -1267,6 +1359,7 @@ function BackendScoreKeyboard({
         bowlerId={bowlerId}
         battingOptions={battingOptions}
         bowlingOptions={bowlingOptions}
+        allowSingleBatterSetup={allowSingleBatterSetup}
         error={error}
         isSaving={isUpdatingState}
         onClose={() => setIsPlayerDialogOpen(false)}
@@ -1812,6 +1905,7 @@ function PlayerSetupDialog({
   bowlerId,
   battingOptions,
   bowlingOptions,
+  allowSingleBatterSetup,
   error,
   isSaving,
   onClose,
@@ -1827,6 +1921,7 @@ function PlayerSetupDialog({
   bowlerId: string;
   battingOptions: MatchSquadPlayer[];
   bowlingOptions: MatchSquadPlayer[];
+  allowSingleBatterSetup: boolean;
   error: string;
   isSaving: boolean;
   onClose: () => void;
@@ -1898,9 +1993,13 @@ function PlayerSetupDialog({
                 value={strikerId}
                 onChange={onStrikerChange}
                 disabled={isSaving}
-                players={battingOptions.filter(
-                  (player) => player.match_team_player_id !== nonStrikerId
-                )}
+                players={
+                  allowSingleBatterSetup
+                    ? battingOptions
+                    : battingOptions.filter(
+                        (player) => player.match_team_player_id !== nonStrikerId
+                      )
+                }
               />
             </div>
 
@@ -1914,9 +2013,13 @@ function PlayerSetupDialog({
                 value={nonStrikerId}
                 onChange={onNonStrikerChange}
                 disabled={isSaving}
-                players={battingOptions.filter(
-                  (player) => player.match_team_player_id !== strikerId
-                )}
+                players={
+                  allowSingleBatterSetup
+                    ? battingOptions
+                    : battingOptions.filter(
+                        (player) => player.match_team_player_id !== strikerId
+                      )
+                }
               />
             </div>
 
@@ -2011,13 +2114,43 @@ function formatScore(runs: number, wickets: number) {
   return `${runs}/${wickets}`;
 }
 
+function getRemainingWickets(
+  innings: MatchScorecard["innings"][number],
+  squad: MatchSquadPlayer[]
+) {
+  const playingCount = squad.filter(
+    (player) =>
+      player.match_team_id === innings.batting_match_team_id &&
+      player.is_playing_xi
+  ).length;
+  const maxPossibleWickets = playingCount > 0 ? playingCount - 1 : 10;
+
+  return Math.max(maxPossibleWickets - innings.total_wickets, 0);
+}
+
+function getScheduledStartDate(value?: string) {
+  if (!value) return null;
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatScheduledStart(date: Date) {
+  return date.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 function ScheduledView({
   match,
   id,
+  scheduleError,
   onStart,
 }: {
   match: ReturnType<typeof getMatchById>;
   id: string;
+  scheduleError: string;
   onStart: () => void;
 }) {
   if (!match) return null;
@@ -2039,6 +2172,12 @@ function ScheduledView({
           <p className="text-muted-foreground text-xs">{match.matchNote}</p>
         </CardContent>
       </Card>
+
+      {scheduleError && (
+        <p className="rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
+          {scheduleError}
+        </p>
+      )}
 
       <Button asChild variant="outline" className="w-full h-10">
         <Link to={`/matches/${id}/players`}>Edit Players</Link>

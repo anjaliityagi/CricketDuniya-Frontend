@@ -22,7 +22,7 @@ export type TeamPlayer = {
   name: string;
   phone_number?: string;
   is_captain?: boolean;
-  is_wicket_keeper?: boolean;
+  is_umpire?: boolean;
   is_playing_xi?: boolean;
   is_substitute?: boolean;
   batting_order?: number | null;

@@ -35,9 +35,9 @@ export async function assignTeamCaptain(playerId: string, teamId: string) {
   return data;
 }
 
-export async function assignTeamWicketkeeper(playerId: string, teamId: string) {
+export async function assignTeamUmpire(playerId: string, teamId: string) {
   const { data } = await api.put<{ message: string }>(
-    `/players/${playerId}/assign-wicketkeeper`,
+    `/players/${playerId}/assign-umpire`,
     {
       team_id: teamId,
     }
