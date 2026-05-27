@@ -25,6 +25,7 @@ export type BowlerLive = {
 export type Match = {
   id: string;
   status: "live" | "scheduled" | "completed";
+  match_phase?: "regular" | "completed" | `super_over_${number}` | string;
   teamOneName: string;
   teamTwoName: string;
   teamOneScore?: string;

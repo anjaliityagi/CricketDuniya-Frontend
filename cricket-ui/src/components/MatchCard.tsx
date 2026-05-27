@@ -14,9 +14,32 @@ function getStatusLabel(status: Match["status"]) {
   return "UPCOMING";
 }
 
+function getPhaseLabel(matchPhase?: Match["match_phase"]) {
+  const match = /^super_over_(\d+)$/.exec(String(matchPhase ?? ""));
+  if (match) return `SUPER OVER #${match[1]}`;
+  return "";
+}
+
+function getReadableMatchNote(match: Match) {
+  const superOverMatch = /^super_over_(\d+)$/.exec(String(match.match_phase ?? ""));
+  if (superOverMatch) {
+    const superOverNo = Number(superOverMatch[1]);
+    return superOverNo === 1
+      ? "Match tied. Super Over #1 is deciding the result."
+      : `Previous Super Over tied. Super Over #${superOverNo} is deciding the result.`;
+  }
+
+  if (match.match_phase === "completed" && match.status === "completed") {
+    return match.matchNote || "Match finished.";
+  }
+
+  return match.matchNote || `${match.overs_per_side} overs`;
+}
+
 function MatchCard({ match }: MatchCardProps) {
   const title = `${match.teamOneName} vs ${match.teamTwoName}`;
   const isLive = match.status === "live";
+  const phaseLabel = getPhaseLabel(match.match_phase);
 
   return (
     <Link to={`/matches/${match.id}`} className="block">
@@ -41,7 +64,7 @@ function MatchCard({ match }: MatchCardProps) {
                 isLive ? "text-primary" : "text-muted-foreground"
               )}
             >
-              {getStatusLabel(match.status)}
+              {phaseLabel || getStatusLabel(match.status)}
             </p>
           </div>
 
@@ -66,7 +89,7 @@ function MatchCard({ match }: MatchCardProps) {
           </div>
 
           <p className="text-muted-foreground text-sm leading-relaxed border-t border-dashed border-border pt-3">
-            {match.matchNote || `${match.overs_per_side} overs`}
+            {getReadableMatchNote(match)}
           </p>
         </CardContent>
       </Card>

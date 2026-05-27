@@ -5,6 +5,7 @@ type ApiMatch = {
   id?: string;
   _id?: string;
   status?: string;
+  match_phase?: string;
   team_a_id?: string;
   team_b_id?: string;
   team_a_name?: string;
@@ -52,6 +53,19 @@ type ApiScorecardPlayer = ScorecardPlayer & {
   out?: boolean;
 };
 
+type ApiMatchInnings = Partial<MatchInnings> & {
+  id?: string;
+  innings_id?: string;
+  batting_team?: string;
+  bowling_team?: string;
+  runs?: number;
+  wickets?: number;
+  overs?: number;
+  status?: string;
+  is_super_over?: boolean;
+  super_over_no?: number;
+};
+
 export type CreateMatchPayload = {
   team_a_name: string;
   team_b_name: string;
@@ -66,11 +80,16 @@ export type MatchInnings = {
   innings_no: number;
   batting_match_team_id: string;
   bowling_match_team_id: string;
+  batting_team?: string;
+  bowling_team?: string;
   total_runs: number;
   total_wickets: number;
   legal_balls: number;
   current_over: number;
   current_ball: number;
+  status?: string;
+  is_super_over?: boolean;
+  super_over_no?: number;
 };
 
 export type MatchSquadPlayer = {
@@ -125,6 +144,9 @@ export type RecentBall = {
 };
 
 export type MatchScorecard = {
+  match_id?: string;
+  match_phase?: "regular" | "completed" | `super_over_${number}` | string;
+  winner_team_id?: string | null;
   innings: MatchInnings[];
   batting: ScorecardPlayer[];
   bowling: ScorecardPlayer[];
@@ -230,6 +252,7 @@ function normalizeMatch(match: ApiMatch): Match {
   return {
     id: String(match.id ?? match._id ?? crypto.randomUUID()),
     status: toMatchStatus(match.status),
+    match_phase: match.match_phase,
     teamOneName,
     teamTwoName,
     teamOneScore: match.teamOneScore ?? match.team_one_score ?? "—",
@@ -280,6 +303,30 @@ function toBooleanFlag(value: unknown) {
   }
 
   return false;
+}
+
+function normalizeInnings(entry: ApiMatchInnings): MatchInnings {
+  const currentOver = Number(entry.current_over ?? entry.overs ?? 0);
+  const currentBall = Number(entry.current_ball ?? 0);
+  const legalBalls = Number(entry.legal_balls ?? Math.floor(currentOver) * 6 + currentBall);
+
+  return {
+    id: String(entry.id ?? entry.innings_id ?? ""),
+    match_id: String(entry.match_id ?? ""),
+    innings_no: Number(entry.innings_no ?? 0),
+    batting_match_team_id: String(entry.batting_match_team_id ?? ""),
+    bowling_match_team_id: String(entry.bowling_match_team_id ?? ""),
+    batting_team: entry.batting_team,
+    bowling_team: entry.bowling_team,
+    total_runs: Number(entry.total_runs ?? entry.runs ?? 0),
+    total_wickets: Number(entry.total_wickets ?? entry.wickets ?? 0),
+    legal_balls: legalBalls,
+    current_over: currentOver,
+    current_ball: currentBall,
+    status: entry.status,
+    is_super_over: Boolean(entry.is_super_over),
+    super_over_no: Number(entry.super_over_no ?? 0),
+  };
 }
 
 export async function fetchMatches() {
@@ -405,8 +452,9 @@ export async function fetchMatchScorecard(matchId: string) {
   const { data } = await api.get<{ success: boolean; data: MatchScorecard }>(
     `/matches/${matchId}/scorecard`
   );
-  const batting = Array.isArray(data.data?.batting)
-    ? (data.data.batting as ApiScorecardPlayer[]).map((player) => ({
+  const scorecard = data.data ?? (data as unknown as MatchScorecard);
+  const batting = Array.isArray(scorecard?.batting)
+    ? (scorecard.batting as ApiScorecardPlayer[]).map((player) => ({
         ...player,
         is_out: toBooleanFlag(player.is_out ?? player.isOut ?? player.out),
       }))
@@ -414,12 +462,17 @@ export async function fetchMatchScorecard(matchId: string) {
 
   return {
     ...emptyScorecard,
-    ...data.data,
-    innings: Array.isArray(data.data?.innings) ? data.data.innings : [],
+    ...scorecard,
+    innings: Array.isArray(scorecard?.innings)
+      ? (scorecard.innings as ApiMatchInnings[])
+          .map(normalizeInnings)
+          .filter((entry) => entry.id)
+          .sort((a, b) => a.innings_no - b.innings_no)
+      : [],
     batting,
-    bowling: Array.isArray(data.data?.bowling) ? data.data.bowling : [],
-    recent_balls: Array.isArray(data.data?.recent_balls)
-      ? data.data.recent_balls
+    bowling: Array.isArray(scorecard?.bowling) ? scorecard.bowling : [],
+    recent_balls: Array.isArray(scorecard?.recent_balls)
+      ? scorecard.recent_balls
       : [],
   };
 }

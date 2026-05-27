@@ -7,6 +7,6 @@ export function useMatchScorecardQuery(matchId?: string, enabled = true) {
     queryKey: ["matches", matchId, "scorecard"],
     queryFn: () => fetchMatchScorecard(matchId!),
     enabled: Boolean(matchId) && enabled,
-    refetchInterval: enabled ? 6000 : false,
+    refetchInterval: enabled ? 4000 : false,
   });
 }
