@@ -451,11 +451,47 @@ function BackendLiveMatch({
 }) {
   const innings = getCurrentScorecardInnings(scorecard);
   const [liveState, setLiveState] = useState<InningsState | null>(null);
+  const [localRecentBalls, setLocalRecentBalls] = useState<MatchScorecard["recent_balls"]>([]);
   const isScorecardCompleted = scorecard.match_phase === "completed";
 
   useEffect(() => {
     setLiveState(null);
+    setLocalRecentBalls([]);
   }, [innings?.id]);
+
+  useEffect(() => {
+    if (!innings) return;
+
+    setLiveState((current) => {
+      if (!current || current.innings_id !== innings.id) return current;
+
+      const bowlerChangedAfterOver =
+        Boolean(current.needs_next_bowler) &&
+        Boolean(scorecard.current_bowler_id) &&
+        scorecard.current_bowler_id !== current.bowler_id;
+
+      return {
+        ...current,
+        striker_id: current.striker_id ?? scorecard.current_striker_id ?? null,
+        non_striker_id: current.non_striker_id ?? scorecard.current_non_striker_id ?? null,
+        bowler_id: bowlerChangedAfterOver
+          ? scorecard.current_bowler_id
+          : current.bowler_id ?? scorecard.current_bowler_id ?? null,
+        total_runs: innings.total_runs,
+        total_wickets: innings.total_wickets,
+        legal_balls: innings.legal_balls,
+        current_over: innings.current_over,
+        current_ball: innings.current_ball,
+        needs_next_bowler: bowlerChangedAfterOver ? false : current.needs_next_bowler,
+        over_completed: bowlerChangedAfterOver ? false : current.over_completed,
+      };
+    });
+  }, [
+    innings,
+    scorecard.current_bowler_id,
+    scorecard.current_non_striker_id,
+    scorecard.current_striker_id,
+  ]);
 
   if (!innings) {
     return (
@@ -488,10 +524,12 @@ function BackendLiveMatch({
       : innings?.bowling_match_team_id === match.team_b_match_team_id
         ? match.teamTwoName
         : innings?.bowling_team ?? "Bowling";
-  const recentBalls = scorecard.recent_balls
-    .filter((ball) => ball.innings_id === innings.id)
-    .slice(-6)
-    .reverse();
+  const scorecardRecentBalls = getActiveOverBalls(
+    scorecard.recent_balls.filter((ball) => ball.innings_id === innings.id),
+    liveState?.current_over ?? innings.current_over,
+    liveState?.current_ball ?? innings.current_ball
+  );
+  const recentBalls = localRecentBalls.length > 0 ? localRecentBalls : scorecardRecentBalls;
   const battingPlayers = scorecard.batting.filter(
     (player) => player.match_team_id === innings?.batting_match_team_id
   );
@@ -568,12 +606,17 @@ function BackendLiveMatch({
         ? match.teamTwoName
         : null
     : null;
+  const superOverResultText =
+    winnerName && hasSuperOvers
+      ? getSuperOverResultText(scorecard.innings, winnerName, winnerMatchTeamId, squad)
+      : null;
   const resultText = winnerName
-    ? secondInnings && firstInnings
-      ? secondInnings.total_runs > firstInnings.total_runs
-        ? `${winnerName} won by ${getRemainingWickets(secondInnings, squad)} wickets`
-        : `${winnerName} won by ${Math.max(firstInnings.total_runs - secondInnings.total_runs, 0)} runs`
-      : `${winnerName} won the match`
+    ? superOverResultText ??
+      (secondInnings && firstInnings
+        ? secondInnings.total_runs > firstInnings.total_runs
+          ? `${winnerName} won by ${getRemainingWickets(secondInnings, squad)} wickets`
+          : `${winnerName} won by ${Math.max(firstInnings.total_runs - secondInnings.total_runs, 0)} runs`
+        : `${winnerName} won the match`)
     : isScorecardCompleted && hasSuperOvers
       ? "Match tied after Super Overs. No winner declared."
       : isScorecardCompleted && regularMatchTied
@@ -776,6 +819,20 @@ function BackendLiveMatch({
           bowlingMatchTeamId={innings.bowling_match_team_id}
           liveState={liveState}
           onStateChange={setLiveState}
+          onBallRecorded={(payload, nextState) => {
+            const isIllegalDelivery = ["wide", "no_ball", "dead_ball"].includes(payload.ball_type);
+
+            if (!isIllegalDelivery && nextState.current_ball === 0) {
+              setLocalRecentBalls([]);
+              return;
+            }
+
+            setLocalRecentBalls((current) => [
+              ...(current.length > 0 ? current : scorecardRecentBalls),
+              createRecentBallFromPayload(payload, innings.id),
+            ]);
+          }}
+          onUndoBall={() => setLocalRecentBalls([])}
           isSaving={isSavingBall}
           onAddBall={onAddBall}
           onEndMatch={onEndMatch}
@@ -888,8 +945,29 @@ function CompletedMatchSummary({
       .map((player) => [player.match_team_player_id, player.batting_order ?? Number.MAX_SAFE_INTEGER])
   );
 
-  const battingPlayers = scorecard.batting
-    .filter((player) => player.match_team_id === selectedInnings.batting_match_team_id)
+  const selectedBattingPlayers = getInningsScopedPlayers(
+    scorecard.batting,
+    selectedInnings,
+    selectedInnings.batting_match_team_id
+  );
+  const selectedBowlingPlayers = getInningsScopedPlayers(
+    scorecard.bowling,
+    selectedInnings,
+    selectedInnings.bowling_match_team_id
+  );
+  const selectedInningsBalls = scorecard.recent_balls.filter(
+    (ball) => ball.innings_id === selectedInnings.id
+  );
+  const derivedSuperOverStats =
+    selectedInnings.is_super_over && selectedInningsBalls.length > 0
+      ? getDerivedInningsPlayerStats(selectedInnings, selectedInningsBalls, squad)
+      : null;
+
+  const battingPlayers = (
+    selectedBattingPlayers.length > 0
+      ? selectedBattingPlayers
+      : derivedSuperOverStats?.battingPlayers ?? []
+  )
     .sort((a, b) => {
       const orderA = battingOrderMap.get(a.match_team_player_id) ?? Number.MAX_SAFE_INTEGER;
       const orderB = battingOrderMap.get(b.match_team_player_id) ?? Number.MAX_SAFE_INTEGER;
@@ -897,8 +975,11 @@ function CompletedMatchSummary({
       return b.runs_scored - a.runs_scored;
     });
 
-  const bowlingPlayers = scorecard.bowling
-    .filter((player) => player.match_team_id === selectedInnings.bowling_match_team_id)
+  const bowlingPlayers = (
+    selectedBowlingPlayers.length > 0
+      ? selectedBowlingPlayers
+      : derivedSuperOverStats?.bowlingPlayers ?? []
+  )
     .sort((a, b) => {
       if (b.wickets_taken !== a.wickets_taken) return b.wickets_taken - a.wickets_taken;
       return getBallsFromOvers(b.overs_bowled) - getBallsFromOvers(a.overs_bowled);
@@ -1137,6 +1218,154 @@ function InningsMiniScore({
   );
 }
 
+function getInningsScopedPlayers<
+  T extends {
+    innings_id?: string;
+    innings_no?: number;
+    is_super_over?: boolean;
+    super_over_no?: number;
+    match_team_id: string;
+  }
+>(
+  players: T[],
+  innings: MatchScorecard["innings"][number],
+  teamId: string
+) {
+  const inningsPlayers = players.filter((player) => {
+    if (player.match_team_id !== teamId) return false;
+    if (player.innings_id && player.innings_id === innings.id) return true;
+
+    if (innings.is_super_over) {
+      return (
+        Boolean(player.is_super_over) &&
+        (player.super_over_no ?? 1) === (innings.super_over_no ?? 1)
+      );
+    }
+
+    return (
+      !player.is_super_over &&
+      typeof player.innings_no === "number" &&
+      player.innings_no === innings.innings_no
+    );
+  });
+
+  if (inningsPlayers.length > 0) {
+    return inningsPlayers;
+  }
+
+  if (innings.is_super_over) {
+    return [];
+  }
+
+  return players.filter((player) => player.match_team_id === teamId && !player.innings_id);
+}
+
+function createEmptyScorecardPlayer(
+  playerId: string,
+  teamId: string,
+  inningsId: string,
+  squad: MatchSquadPlayer[]
+): ScorecardPlayer {
+  const squadPlayer = squad.find((player) => player.match_team_player_id === playerId);
+
+  return {
+    innings_id: inningsId,
+    match_team_player_id: playerId,
+    match_team_id: teamId,
+    user_id: squadPlayer?.user_id ?? "",
+    player_name:
+      squadPlayer?.player_name ||
+      squadPlayer?.name ||
+      squadPlayer?.phone_number ||
+      "Unknown player",
+    runs_scored: 0,
+    balls_faced: 0,
+    fours: 0,
+    sixes: 0,
+    is_out: false,
+    runs_conceded: 0,
+    wickets_taken: 0,
+    overs_bowled: 0,
+    fantasy_points: 0,
+  };
+}
+
+function getBallBatRuns(ball: MatchScorecard["recent_balls"][number]) {
+  if (ball.ball_type === "wide") return 0;
+  if (ball.ball_type === "bye" || ball.ball_type === "leg_bye") return 0;
+  if (ball.runs_off_bat > 0) return ball.runs_off_bat;
+  return ball.ball_type === "no_ball" ? Math.max(ball.total_runs - ball.extras, 0) : ball.total_runs;
+}
+
+function getDerivedInningsPlayerStats(
+  innings: MatchScorecard["innings"][number],
+  balls: MatchScorecard["recent_balls"],
+  squad: MatchSquadPlayer[]
+) {
+  const batting = new Map<string, ScorecardPlayer>();
+  const bowling = new Map<string, ScorecardPlayer>();
+
+  function getBatter(playerId: string) {
+    if (!batting.has(playerId)) {
+      batting.set(
+        playerId,
+        createEmptyScorecardPlayer(playerId, innings.batting_match_team_id, innings.id, squad)
+      );
+    }
+    return batting.get(playerId)!;
+  }
+
+  function getBowler(playerId: string) {
+    if (!bowling.has(playerId)) {
+      bowling.set(
+        playerId,
+        createEmptyScorecardPlayer(playerId, innings.bowling_match_team_id, innings.id, squad)
+      );
+    }
+    return bowling.get(playerId)!;
+  }
+
+  for (const ball of balls) {
+    const batter = ball.striker_id ? getBatter(ball.striker_id) : null;
+    const bowler = ball.bowler_id ? getBowler(ball.bowler_id) : null;
+    const batRuns = getBallBatRuns(ball);
+    const isLegal = isLegalRecentBall(ball);
+
+    if (batter) {
+      batter.runs_scored += batRuns;
+      if (isLegal) batter.balls_faced += 1;
+      if (batRuns === 4) batter.fours += 1;
+      if (batRuns === 6) batter.sixes += 1;
+    }
+
+    if (bowler) {
+      const bowlerRuns =
+        ball.ball_type === "bye" || ball.ball_type === "leg_bye" ? 0 : ball.total_runs;
+      bowler.runs_conceded += bowlerRuns;
+      if (isLegal) {
+        const ballsBowled = Math.floor(bowler.overs_bowled) * 6 + Math.round((bowler.overs_bowled % 1) * 10) + 1;
+        bowler.overs_bowled = Math.floor(ballsBowled / 6) + (ballsBowled % 6) / 10;
+      }
+      if (
+        ball.is_wicket &&
+        !["run_out", "retired_hurt"].includes(String(ball.dismissal_type ?? ""))
+      ) {
+        bowler.wickets_taken += 1;
+      }
+    }
+
+    const dismissedPlayerId = ball.dismissed_player_id || (ball.is_wicket ? ball.striker_id : "");
+    if (dismissedPlayerId) {
+      getBatter(dismissedPlayerId).is_out = true;
+    }
+  }
+
+  return {
+    battingPlayers: Array.from(batting.values()),
+    bowlingPlayers: Array.from(bowling.values()),
+  };
+}
+
 function BackendScoreKeyboard({
   match,
   scorecard,
@@ -1146,6 +1375,8 @@ function BackendScoreKeyboard({
   bowlingMatchTeamId,
   liveState,
   onStateChange,
+  onBallRecorded,
+  onUndoBall,
   isSaving,
   onAddBall,
   onEndMatch,
@@ -1158,6 +1389,8 @@ function BackendScoreKeyboard({
   bowlingMatchTeamId: string;
   liveState: InningsState | null;
   onStateChange: (state: InningsState) => void;
+  onBallRecorded: (payload: AddBallPayload, nextState: InningsState) => void;
+  onUndoBall: () => void;
   isSaving: boolean;
   onAddBall: (payload: AddBallPayload) => Promise<BallResponse>;
   onEndMatch: () => void;
@@ -1323,11 +1556,22 @@ function BackendScoreKeyboard({
     try {
       const response = await onAddBall(payload);
       if (response.state) {
-        onStateChange(response.state);
+        const isIllegalDelivery = ["wide", "no_ball", "dead_ball"].includes(payload.ball_type);
+        const nextState = isIllegalDelivery
+          ? {
+              ...response.state,
+              bowler_id: response.state.bowler_id ?? bowlerId,
+              needs_next_bowler: false,
+              over_completed: false,
+            }
+          : response.state;
+
+        onStateChange(nextState);
+        onBallRecorded(payload, nextState);
         if (response.state.innings_completed) {
           setError("Innings completed by backend. Scoring is stopped.");
         }
-        if (response.state.needs_next_bowler) {
+        if (nextState.needs_next_bowler) {
           setIsBowlerDialogOpen(true);
           setBowlerId("");
         }
@@ -1445,9 +1689,16 @@ function BackendScoreKeyboard({
       setIsUpdatingState(true);
       setError("");
       const response = await updateInningsState(inningsId, {
+        striker_id: strikerId,
+        non_striker_id: nonStrikerId,
         bowler_id: bowlerId,
       });
-      onStateChange(response.state);
+      onStateChange({
+        ...response.state,
+        bowler_id: response.state?.bowler_id ?? bowlerId,
+        needs_next_bowler: false,
+        over_completed: false,
+      });
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ["matches", match.id] }),
         queryClient.refetchQueries({ queryKey: ["matches", match.id, "scorecard"] }),
@@ -1466,6 +1717,7 @@ function BackendScoreKeyboard({
     try {
       setError("");
       const response = await undoLastBall(inningsId);
+      onUndoBall();
       onStateChange(response.state);
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ["matches", match.id] }),
@@ -1654,6 +1906,106 @@ function LivePlayerCard({
       </div>
     </div>
   );
+}
+
+function isLegalRecentBall(ball: MatchScorecard["recent_balls"][number]) {
+  return !["wide", "no_ball", "dead_ball", "retired_hurt"].includes(ball.ball_type);
+}
+
+function createRecentBallFromPayload(
+  payload: AddBallPayload,
+  inningsId: string
+): MatchScorecard["recent_balls"][number] {
+  return {
+    id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    innings_id: inningsId,
+    ball_no: 0,
+    delivery_no: 0,
+    ball_type: payload.ball_type,
+    runs_off_bat: payload.runs_off_bat,
+    extras: payload.extras,
+    total_runs: payload.total_runs,
+    is_wicket: payload.is_wicket,
+    striker_id: payload.striker_id ?? "",
+    non_striker_id: payload.non_striker_id ?? "",
+    bowler_id: payload.bowler_id ?? "",
+    dismissed_player_id: payload.dismissed_player_id ?? null,
+    dismissal_type: payload.dismissal_type ?? null,
+  };
+}
+
+function getActiveOverBalls(
+  balls: MatchScorecard["recent_balls"],
+  currentOver: number,
+  currentBall: number
+) {
+  const overNumberedBalls = balls.filter((ball) => ball.over_no === currentOver);
+
+  if (overNumberedBalls.length > 0) {
+    return overNumberedBalls;
+  }
+
+  const targetLegalBalls = Math.max(0, currentBall);
+  const oldestFirst = collectActiveOverBalls(balls, targetLegalBalls, "oldest-first");
+  const newestFirst = collectActiveOverBalls(balls, targetLegalBalls, "newest-first");
+
+  if (isBetterActiveOverCandidate(newestFirst, oldestFirst, targetLegalBalls)) {
+    return newestFirst;
+  }
+
+  return oldestFirst;
+}
+
+function collectActiveOverBalls(
+  balls: MatchScorecard["recent_balls"],
+  targetLegalBalls: number,
+  order: "oldest-first" | "newest-first"
+) {
+  const activeOverBalls: MatchScorecard["recent_balls"] = [];
+  let legalBallsSeen = 0;
+  const start = order === "oldest-first" ? balls.length - 1 : 0;
+  const end = order === "oldest-first" ? -1 : balls.length;
+  const step = order === "oldest-first" ? -1 : 1;
+
+  for (let index = start; index !== end; index += step) {
+    const ball = balls[index];
+    const isLegal = isLegalRecentBall(ball);
+
+    if (isLegal && legalBallsSeen >= targetLegalBalls) {
+      break;
+    }
+
+    activeOverBalls.push(ball);
+
+    if (isLegal) {
+      legalBallsSeen += 1;
+    }
+  }
+
+  return order === "oldest-first" ? activeOverBalls.reverse() : activeOverBalls;
+}
+
+function getLegalRecentBallCount(balls: MatchScorecard["recent_balls"]) {
+  return balls.filter(isLegalRecentBall).length;
+}
+
+function isBetterActiveOverCandidate(
+  candidate: MatchScorecard["recent_balls"],
+  current: MatchScorecard["recent_balls"],
+  targetLegalBalls: number
+) {
+  const candidateLegalBalls = getLegalRecentBallCount(candidate);
+  const currentLegalBalls = getLegalRecentBallCount(current);
+
+  if (candidateLegalBalls === targetLegalBalls && currentLegalBalls !== targetLegalBalls) {
+    return true;
+  }
+
+  if (targetLegalBalls === 0 && candidate.length > 0 && current.length === 0) {
+    return true;
+  }
+
+  return false;
 }
 
 function RecentBallChip({ ball }: { ball: MatchScorecard["recent_balls"][number] }) {
@@ -2383,6 +2735,39 @@ function getRemainingWickets(
   const maxPossibleWickets = playingCount > 0 ? playingCount - 1 : 10;
 
   return Math.max(maxPossibleWickets - innings.total_wickets, 0);
+}
+
+function getSuperOverResultText(
+  innings: MatchScorecard["innings"],
+  winnerName: string,
+  winnerMatchTeamId: string | null | undefined,
+  squad: MatchSquadPlayer[]
+) {
+  if (!winnerMatchTeamId) return `${winnerName} won in the Super Over`;
+
+  const latestCompleteSuperOver = Object.values(groupSuperOvers(innings))
+    .filter((entries) => entries.length >= 2)
+    .sort((a, b) => (b[0]?.super_over_no ?? 0) - (a[0]?.super_over_no ?? 0))[0];
+
+  if (!latestCompleteSuperOver) return `${winnerName} won in the Super Over`;
+
+  const winnerInnings = latestCompleteSuperOver.find(
+    (entry) => entry.batting_match_team_id === winnerMatchTeamId
+  );
+  const opponentInnings = latestCompleteSuperOver.find(
+    (entry) => entry.batting_match_team_id !== winnerMatchTeamId
+  );
+
+  if (!winnerInnings || !opponentInnings) return `${winnerName} won in the Super Over`;
+
+  if (winnerInnings.innings_no > opponentInnings.innings_no) {
+    return `${winnerName} won the Super Over by ${getRemainingWickets(winnerInnings, squad)} wickets`;
+  }
+
+  return `${winnerName} won the Super Over by ${Math.max(
+    winnerInnings.total_runs - opponentInnings.total_runs,
+    0
+  )} runs`;
 }
 
 function getScheduledStartDate(value?: string) {

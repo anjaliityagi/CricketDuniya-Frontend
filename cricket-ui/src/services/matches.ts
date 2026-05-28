@@ -51,6 +51,16 @@ type MatchesResponse = {
 type ApiScorecardPlayer = ScorecardPlayer & {
   isOut?: boolean;
   out?: boolean;
+  inningsId?: string;
+  inning_id?: string;
+  inningId?: string;
+  match_innings_id?: string;
+  matchInningsId?: string;
+  inningsNo?: number;
+  inning_no?: number;
+  inningNo?: number;
+  isSuperOver?: boolean;
+  superOverNo?: number;
 };
 
 type ApiMatchInnings = Partial<MatchInnings> & {
@@ -64,6 +74,41 @@ type ApiMatchInnings = Partial<MatchInnings> & {
   status?: string;
   is_super_over?: boolean;
   super_over_no?: number;
+};
+
+type ApiDeliveriesByInnings = {
+  innings_id?: string;
+  inningsId?: string;
+  innings_no?: number;
+  inningsNo?: number;
+  is_super_over?: boolean;
+  isSuperOver?: boolean;
+  super_over_no?: number;
+  superOverNo?: number;
+  deliveries?: ApiRecentBall[];
+};
+
+type ApiRecentBall = Partial<RecentBall> & {
+  _id?: string;
+  inningsId?: string;
+  overNo?: number;
+  over?: number;
+  current_over?: number;
+  currentOver?: number;
+  ballNo?: number;
+  deliveryNo?: number;
+  ballType?: string;
+  type?: string;
+  delivery_type?: string;
+  deliveryType?: string;
+  totalRuns?: number;
+  runsOffBat?: number;
+  runs?: number;
+  extraRuns?: number;
+  isWicket?: boolean | number | string;
+  wicket?: boolean | number | string;
+  dismissalType?: string | null;
+  dismissedPlayerId?: string | null;
 };
 
 export type CreateMatchPayload = {
@@ -114,6 +159,10 @@ export type MatchSquadPlayer = {
 };
 
 export type ScorecardPlayer = {
+  innings_id?: string;
+  innings_no?: number;
+  is_super_over?: boolean;
+  super_over_no?: number;
   match_team_player_id: string;
   match_team_id: string;
   user_id: string;
@@ -132,14 +181,18 @@ export type ScorecardPlayer = {
 export type RecentBall = {
   id: string;
   innings_id: string;
+  over_no?: number | null;
   ball_no: number;
   delivery_no: number;
   ball_type: string;
+  runs_off_bat: number;
+  extras: number;
   total_runs: number;
   is_wicket: boolean;
   striker_id: string;
   non_striker_id: string;
   bowler_id: string;
+  dismissed_player_id?: string | null;
   dismissal_type: string | null;
 };
 
@@ -151,6 +204,13 @@ export type MatchScorecard = {
   batting: ScorecardPlayer[];
   bowling: ScorecardPlayer[];
   recent_balls: RecentBall[];
+  deliveries_by_innings: Array<{
+    innings_id: string;
+    innings_no: number;
+    is_super_over: boolean;
+    super_over_no: number;
+    deliveries: RecentBall[];
+  }>;
   current_striker_id?: string | null;
   current_non_striker_id?: string | null;
   current_bowler_id?: string | null;
@@ -179,6 +239,7 @@ const emptyScorecard: MatchScorecard = {
   batting: [],
   bowling: [],
   recent_balls: [],
+  deliveries_by_innings: [],
   current_striker_id: null,
   current_non_striker_id: null,
   current_bowler_id: null,
@@ -329,6 +390,78 @@ function normalizeInnings(entry: ApiMatchInnings): MatchInnings {
   };
 }
 
+function normalizeBallType(value: unknown) {
+  if (typeof value !== "string") return "normal";
+
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  if (["noball", "nb"].includes(normalized)) return "no_ball";
+  if (["wide_ball", "wd"].includes(normalized)) return "wide";
+  if (["legbye", "legbyes", "lb"].includes(normalized)) return "leg_bye";
+  if (["byes"].includes(normalized)) return "bye";
+  if (["deadball"].includes(normalized)) return "dead_ball";
+  if (["retiredhurt", "retired"].includes(normalized)) return "retired_hurt";
+
+  return normalized || "normal";
+}
+
+function normalizeRecentBall(ball: ApiRecentBall): RecentBall {
+  const ballType = normalizeBallType(
+    ball.ball_type ?? ball.ballType ?? ball.type ?? ball.delivery_type ?? ball.deliveryType
+  );
+  const dismissalType = ball.dismissal_type ?? ball.dismissalType ?? null;
+  const isWicket =
+    toBooleanFlag(ball.is_wicket ?? ball.isWicket ?? ball.wicket) ||
+    ballType === "wicket" ||
+    Boolean(dismissalType);
+
+  return {
+    id: String(ball.id ?? ball._id ?? crypto.randomUUID()),
+    innings_id: String(ball.innings_id ?? ball.inningsId ?? ""),
+    over_no:
+      ball.over_no ??
+      ball.overNo ??
+      ball.over ??
+      ball.current_over ??
+      ball.currentOver ??
+      null,
+    ball_no: Number(ball.ball_no ?? ball.ballNo ?? 0),
+    delivery_no: Number(ball.delivery_no ?? ball.deliveryNo ?? 0),
+    ball_type: ballType,
+    runs_off_bat: Number(ball.runs_off_bat ?? ball.runsOffBat ?? 0),
+    extras: Number(ball.extras ?? ball.extraRuns ?? 0),
+    total_runs: Number(ball.total_runs ?? ball.totalRuns ?? ball.runs ?? 0),
+    is_wicket: isWicket,
+    striker_id: String(ball.striker_id ?? ""),
+    non_striker_id: String(ball.non_striker_id ?? ""),
+    bowler_id: String(ball.bowler_id ?? ""),
+    dismissed_player_id: ball.dismissed_player_id ?? ball.dismissedPlayerId ?? null,
+    dismissal_type: dismissalType,
+  };
+}
+
+function normalizeDeliveriesByInnings(entry: ApiDeliveriesByInnings) {
+  const inningsId = String(entry.innings_id ?? entry.inningsId ?? "");
+
+  return {
+    innings_id: inningsId,
+    innings_no: Number(entry.innings_no ?? entry.inningsNo ?? 0),
+    is_super_over: toBooleanFlag(entry.is_super_over ?? entry.isSuperOver),
+    super_over_no: Number(entry.super_over_no ?? entry.superOverNo ?? 0),
+    deliveries: Array.isArray(entry.deliveries)
+      ? entry.deliveries.map((ball) =>
+          normalizeRecentBall({
+            ...ball,
+            innings_id: ball.innings_id ?? inningsId,
+          })
+        )
+      : [],
+  };
+}
+
 export async function fetchMatches() {
   const { data } = await api.get<MatchesResponse | ApiMatch[]>("/matches");
 
@@ -456,7 +589,34 @@ export async function fetchMatchScorecard(matchId: string) {
   const batting = Array.isArray(scorecard?.batting)
     ? (scorecard.batting as ApiScorecardPlayer[]).map((player) => ({
         ...player,
+        innings_id:
+          player.innings_id ??
+          player.inningsId ??
+          player.inning_id ??
+          player.inningId ??
+          player.match_innings_id ??
+          player.matchInningsId,
+        innings_no:
+          player.innings_no ?? player.inningsNo ?? player.inning_no ?? player.inningNo,
+        is_super_over: toBooleanFlag(player.is_super_over ?? player.isSuperOver),
+        super_over_no: player.super_over_no ?? player.superOverNo,
         is_out: toBooleanFlag(player.is_out ?? player.isOut ?? player.out),
+      }))
+    : [];
+  const bowling = Array.isArray(scorecard?.bowling)
+    ? (scorecard.bowling as ApiScorecardPlayer[]).map((player) => ({
+        ...player,
+        innings_id:
+          player.innings_id ??
+          player.inningsId ??
+          player.inning_id ??
+          player.inningId ??
+          player.match_innings_id ??
+          player.matchInningsId,
+        innings_no:
+          player.innings_no ?? player.inningsNo ?? player.inning_no ?? player.inningNo,
+        is_super_over: toBooleanFlag(player.is_super_over ?? player.isSuperOver),
+        super_over_no: player.super_over_no ?? player.superOverNo,
       }))
     : [];
 
@@ -470,9 +630,9 @@ export async function fetchMatchScorecard(matchId: string) {
           .sort((a, b) => a.innings_no - b.innings_no)
       : [],
     batting,
-    bowling: Array.isArray(scorecard?.bowling) ? scorecard.bowling : [],
+    bowling,
     recent_balls: Array.isArray(scorecard?.recent_balls)
-      ? scorecard.recent_balls
+      ? (scorecard.recent_balls as ApiRecentBall[]).map(normalizeRecentBall)
       : [],
   };
 }
