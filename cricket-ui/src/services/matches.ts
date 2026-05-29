@@ -385,7 +385,7 @@ function normalizeInnings(entry: ApiMatchInnings): MatchInnings {
     current_over: currentOver,
     current_ball: currentBall,
     status: entry.status,
-    is_super_over: Boolean(entry.is_super_over),
+    is_super_over: toBooleanFlag(entry.is_super_over),
     super_over_no: Number(entry.super_over_no ?? 0),
   };
 }
@@ -633,6 +633,11 @@ export async function fetchMatchScorecard(matchId: string) {
     bowling,
     recent_balls: Array.isArray(scorecard?.recent_balls)
       ? (scorecard.recent_balls as ApiRecentBall[]).map(normalizeRecentBall)
+      : [],
+    deliveries_by_innings: Array.isArray(scorecard?.deliveries_by_innings)
+      ? (scorecard.deliveries_by_innings as ApiDeliveriesByInnings[]).map(
+          normalizeDeliveriesByInnings
+        )
       : [],
   };
 }

@@ -17,7 +17,7 @@ export default function Teams() {
   return (
     <div className="max-w-[430px] mx-auto min-h-[85vh] pb-28">
       <div className="mb-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-2">
+        <p className="brand-wordmark text-[11px] font-black uppercase tracking-[0.2em] mb-2">
           CricRx
         </p>
         <h1 className="text-3xl font-black tracking-tight">Teams</h1>

@@ -955,8 +955,9 @@ function CompletedMatchSummary({
     selectedInnings,
     selectedInnings.bowling_match_team_id
   );
-  const selectedInningsBalls = scorecard.recent_balls.filter(
-    (ball) => ball.innings_id === selectedInnings.id
+  const selectedInningsBalls = getCompletedScorecardInningsDeliveries(
+    scorecard,
+    selectedInnings
   );
   const derivedSuperOverStats =
     selectedInnings.is_super_over && selectedInningsBalls.length > 0
@@ -964,9 +965,11 @@ function CompletedMatchSummary({
       : null;
 
   const battingPlayers = (
-    selectedBattingPlayers.length > 0
+    selectedInnings.is_super_over
+      ? derivedSuperOverStats?.battingPlayers ?? []
+      : selectedBattingPlayers.length > 0
       ? selectedBattingPlayers
-      : derivedSuperOverStats?.battingPlayers ?? []
+      : []
   )
     .sort((a, b) => {
       const orderA = battingOrderMap.get(a.match_team_player_id) ?? Number.MAX_SAFE_INTEGER;
@@ -976,9 +979,11 @@ function CompletedMatchSummary({
     });
 
   const bowlingPlayers = (
-    selectedBowlingPlayers.length > 0
+    selectedInnings.is_super_over
+      ? derivedSuperOverStats?.bowlingPlayers ?? []
+      : selectedBowlingPlayers.length > 0
       ? selectedBowlingPlayers
-      : derivedSuperOverStats?.bowlingPlayers ?? []
+      : []
   )
     .sort((a, b) => {
       if (b.wickets_taken !== a.wickets_taken) return b.wickets_taken - a.wickets_taken;
@@ -1258,6 +1263,32 @@ function getInningsScopedPlayers<
   }
 
   return players.filter((player) => player.match_team_id === teamId && !player.innings_id);
+}
+
+function getCompletedScorecardInningsDeliveries(
+  scorecard: MatchScorecard,
+  innings: MatchScorecard["innings"][number]
+) {
+  if (!innings.is_super_over) {
+    return scorecard.recent_balls.filter((ball) => ball.innings_id === innings.id);
+  }
+
+  const superOvers = scorecard.deliveries_by_innings.filter(
+    (entry) => entry.is_super_over
+  );
+  const superOverInnings = superOvers.filter(
+    (entry) => entry.super_over_no === (innings.super_over_no ?? 0)
+  );
+  const inningsDeliveries = superOverInnings.find((entry) => {
+    if (entry.innings_id && entry.innings_id === innings.id) return true;
+
+    return (
+      entry.innings_no === innings.innings_no &&
+      (entry.super_over_no ?? 0) === (innings.super_over_no ?? 0)
+    );
+  });
+
+  return inningsDeliveries?.deliveries ?? [];
 }
 
 function createEmptyScorecardPlayer(

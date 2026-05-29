@@ -29,10 +29,10 @@ export default function SplashScreen({ onDone }: SplashScreenProps) {
             <Trophy size={20} />
           </span>
           <div>
-            <p className="text-sm font-black uppercase tracking-[0.28em] text-primary">
+            <p className="brand-wordmark text-sm font-black uppercase tracking-[0.28em]">
               CricRx
             </p>
-            <p className="text-xs text-muted-foreground">Team India energy</p>
+            <p className="text-xs text-muted-foreground">Live cricket scoring</p>
           </div>
         </div>
 
@@ -42,88 +42,78 @@ export default function SplashScreen({ onDone }: SplashScreenProps) {
             className="splash-player"
             viewBox="0 0 260 300"
             role="img"
-            aria-label="Female cricketer batting illustration"
+            aria-label="Cricket bat and ball transition"
           >
             <defs>
-              <linearGradient id="jerseyGradient" x1="0" x2="1" y1="0" y2="1">
-                <stop offset="0%" stopColor="#1f7cff" />
-                <stop offset="100%" stopColor="#073b91" />
-              </linearGradient>
               <linearGradient id="batGradient" x1="0" x2="1">
-                <stop offset="0%" stopColor="#f6d69d" />
-                <stop offset="100%" stopColor="#b87322" />
+                <stop offset="0%" stopColor="#f8d9a6" />
+                <stop offset="48%" stopColor="#d79545" />
+                <stop offset="100%" stopColor="#81501f" />
+              </linearGradient>
+              <linearGradient id="batEdgeGradient" x1="0" x2="1">
+                <stop offset="0%" stopColor="#fff2cd" />
+                <stop offset="100%" stopColor="#b8742a" />
+              </linearGradient>
+              <linearGradient id="ballGradient" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="45%" stopColor="#d9f7ef" />
+                <stop offset="100%" stopColor="#19a67b" />
               </linearGradient>
             </defs>
 
-            <g className="splash-bat">
+            <ellipse cx="130" cy="268" rx="92" ry="14" fill="rgb(0 0 0 / 0.18)" />
+
+            <g className="splash-bat" transform="rotate(-23 134 144)">
               <rect
-                x="174"
-                y="26"
-                width="16"
-                height="116"
-                rx="8"
+                x="116"
+                y="58"
+                width="42"
+                height="158"
+                rx="20"
                 fill="url(#batGradient)"
-                transform="rotate(35 182 84)"
               />
               <rect
-                x="180"
-                y="3"
-                width="8"
-                height="40"
-                rx="4"
-                fill="#6b3b16"
-                transform="rotate(35 184 23)"
+                x="121"
+                y="68"
+                width="11"
+                height="136"
+                rx="6"
+                fill="url(#batEdgeGradient)"
+                opacity="0.58"
+              />
+              <rect x="129" y="20" width="15" height="56" rx="7.5" fill="#2d3c57" />
+              <rect x="126" y="16" width="21" height="13" rx="6.5" fill="#172238" />
+              <path
+                d="M116 204c12 12 30 12 42 0v22c0 16-10 27-21 27s-21-11-21-27v-22Z"
+                fill="#c47a2d"
               />
             </g>
 
-            <ellipse cx="130" cy="276" rx="88" ry="15" fill="rgb(0 0 0 / 0.18)" />
-
-            <path
-              d="M103 79c-18 5-33 22-36 43 16 0 35-4 46-15 10-10 10-21-10-28Z"
-              fill="#20122f"
-            />
-            <circle cx="124" cy="74" r="27" fill="#8b4f32" />
-            <path
-              d="M96 74c6-29 51-34 63-4-25-2-39 8-51 25-7-5-12-11-12-21Z"
-              fill="#21152e"
-            />
-            <path
-              d="M147 82c12 8 18 19 18 31-15-6-26-16-32-31h14Z"
-              fill="#21152e"
-            />
-
-            <path
-              d="M91 126c8-22 65-26 80-2l14 69c-31 19-72 19-105 0l11-67Z"
-              fill="url(#jerseyGradient)"
-            />
-            <path
-              d="M89 132c14 12 69 12 84-1l4 17c-19 12-73 12-91 0l3-16Z"
-              fill="#ff8a00"
-            />
-            <path d="M108 123h34l-17 30-17-30Z" fill="#ffffff" opacity="0.9" />
-            <path d="M112 136h26" stroke="#1fbf75" strokeWidth="5" strokeLinecap="round" />
-
-            <path
-              d="M95 133c-27 16-39 32-46 55"
-              fill="none"
-              stroke="#8b4f32"
-              strokeWidth="15"
-              strokeLinecap="round"
-            />
-            <path
-              d="M162 130c22 15 36 31 43 54"
-              fill="none"
-              stroke="#8b4f32"
-              strokeWidth="15"
-              strokeLinecap="round"
-            />
-            <circle cx="49" cy="188" r="8" fill="#8b4f32" />
-            <circle cx="207" cy="185" r="8" fill="#8b4f32" />
-
-            <path d="M96 192l-17 70" stroke="#102a60" strokeWidth="18" strokeLinecap="round" />
-            <path d="M157 192l32 66" stroke="#102a60" strokeWidth="18" strokeLinecap="round" />
-            <path d="M79 263h-31" stroke="#ff8a00" strokeWidth="12" strokeLinecap="round" />
-            <path d="M190 261h31" stroke="#ff8a00" strokeWidth="12" strokeLinecap="round" />
+            <g className="splash-ball-mark">
+              <circle cx="187" cy="132" r="30" fill="url(#ballGradient)" />
+              <path
+                d="M174 109c13 11 20 29 17 50"
+                fill="none"
+                stroke="#0f8d68"
+                strokeWidth="4"
+                strokeLinecap="round"
+              />
+              <path
+                d="M203 112c-11 12-17 28-14 48"
+                fill="none"
+                stroke="#0f8d68"
+                strokeWidth="4"
+                strokeLinecap="round"
+              />
+              <path
+                d="M163 133h48"
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth="3"
+                strokeLinecap="round"
+                opacity="0.75"
+              />
+            </g>
           </svg>
         </div>
 

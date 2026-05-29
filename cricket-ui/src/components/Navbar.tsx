@@ -50,11 +50,11 @@ export default function Navbar() {
               <Shield size={18} />
             </span>
             <div>
-              <h1 className="text-xl font-extrabold tracking-tight">
+              <h1 className="brand-wordmark text-xl font-black tracking-tight">
                 CricRx
               </h1>
               <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-muted-foreground">
-                Team India
+                Cricket hub
               </p>
             </div>
           </div>
@@ -96,7 +96,7 @@ export default function Navbar() {
               <div>
                 <h2 className="text-xl font-extrabold tracking-tight">Menu</h2>
                 <p className="text-xs font-semibold text-muted-foreground">
-                  CricRx
+                  <span className="brand-wordmark">CricRx</span>
                 </p>
               </div>
               <Button

@@ -84,7 +84,7 @@ export default function Login() {
         <div className="text-center mb-8">
           <Badge variant="outline" className="gap-2 px-4 py-2">
             <Trophy size={18} />
-            CricRx
+            <span className="brand-wordmark">CricRx</span>
           </Badge>
         </div>
 

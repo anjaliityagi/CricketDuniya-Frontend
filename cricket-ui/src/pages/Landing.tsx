@@ -8,12 +8,12 @@ export default function Landing() {
           <div className="w-full">
             <div className="text-center lg:text-left">
               <div className="inline-block rounded-full border border-border bg-card/80 px-3 py-1 text-xs sm:text-sm mb-6 text-primary">
-                Team India Cricket Platform
+                Simple Cricket Scoring App
               </div>
 
               <h1 className="text-3xl sm:text-5xl font-black leading-tight">
                 Welcome to
-                <span className="text-primary"> CricRx</span>
+                <span className="brand-wordmark"> CricRx</span>
               </h1>
 
               <p className="text-muted-foreground mt-5 text-sm sm:text-base leading-6 sm:leading-7 max-w-xl mx-auto lg:mx-0">
@@ -54,7 +54,7 @@ export default function Landing() {
                   <div>
                     <p className="text-muted-foreground text-sm">Live Match</p>
                     <h2 className="text-2xl font-bold mt-1">
-                      India vs Australia
+                      Strikers vs Chargers
                     </h2>
                   </div>
 
@@ -66,7 +66,7 @@ export default function Landing() {
                 <div className="grid grid-cols-3 items-center text-center">
                   <div>
                     <div className="w-16 h-16 mx-auto rounded-full bg-primary/20 mb-3 border border-primary/30" />
-                    <p className="font-bold">IND</p>
+                    <p className="font-bold">STR</p>
                     <p className="text-primary text-2xl font-black mt-2">
                       186/4
                     </p>
@@ -76,7 +76,7 @@ export default function Landing() {
 
                   <div>
                     <div className="w-16 h-16 mx-auto rounded-full bg-[#ff8a00]/20 mb-3 border border-[#ff8a00]/30" />
-                    <p className="font-bold">AUS</p>
+                    <p className="font-bold">CHG</p>
                     <p className="text-muted-foreground mt-2">Yet to Bat</p>
                   </div>
                 </div>

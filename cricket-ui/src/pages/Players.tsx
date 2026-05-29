@@ -24,7 +24,7 @@ export default function Players() {
   return (
     <div className="mx-auto min-h-[85vh] max-w-[430px] pb-24">
       <div className="mb-6">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        <p className="brand-wordmark mb-2 text-[11px] font-black uppercase tracking-[0.2em]">
           CricRx
         </p>
         <h1 className="text-3xl font-black tracking-tight">Players</h1>

@@ -62,7 +62,7 @@ export default function Signup() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 text-sm font-semibold text-primary shadow-sm">
             <Trophy size={18} />
-            CricRx
+            <span className="brand-wordmark">CricRx</span>
           </div>
         </div>
 
