@@ -123,7 +123,12 @@ export default function MatchPickToss() {
       </p>
 
       <div className="flex flex-col items-center mb-8">
-        <TossCoin isFlipping={isFlipping} onFlip={handleFlipCoin} />
+        <TossCoin
+          isFlipping={isFlipping}
+          onFlip={handleFlipCoin}
+          teamOneName={currentMatch.teamOneName}
+          teamTwoName={currentMatch.teamTwoName}
+        />
 
         <p className="text-sm text-muted-foreground mt-4">
           {isFlipping

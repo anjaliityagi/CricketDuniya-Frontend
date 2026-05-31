@@ -2,9 +2,15 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Phone, Lock, Eye, EyeOff, User, Trophy, Loader2 } from "lucide-react";
 
+import PhoneValidCheck from "@/components/PhoneValidCheck";
 import { useSignupMutation } from "@/hooks/useSignupMutation";
 import { getAuthErrorMessage } from "@/services/auth";
-import { isValidPhoneNumber, normalizePhoneNumber } from "@/lib/utils";
+import {
+  getDisplayText,
+  getPhoneValidationMessage,
+  isValidPhoneNumber,
+  normalizePhoneNumber,
+} from "@/lib/utils";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -16,11 +22,13 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const isSubmitting = signupMutation.isPending;
+  const phoneError = getPhoneValidationMessage(phone);
+  const isPhoneValid = !phoneError && isValidPhoneNumber(phone);
   const message =
     typeof location.state === "object" &&
     location.state &&
     "message" in location.state
-      ? String(location.state.message)
+      ? getDisplayText(location.state.message)
       : "";
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -32,8 +40,8 @@ export default function Signup() {
       setError("Please enter your name");
       return;
     }
-    if (!isValidPhoneNumber(phone)) {
-      setError("Enter a valid 10-digit phone number");
+    if (phoneError || !isValidPhoneNumber(phone)) {
+      setError(phoneError || "Enter a valid 10-digit phone number");
       return;
     }
     if (password.length < 6) {
@@ -116,13 +124,22 @@ export default function Signup() {
                   type="tel"
                   inputMode="numeric"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    setError("");
+                  }}
                   placeholder="9876543210"
-                  className="w-full rounded-xl border border-input bg-background py-3 pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring transition"
+                  className="w-full rounded-xl border border-input bg-background py-3 pl-12 pr-12 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring transition"
                   required
                   disabled={isSubmitting}
                 />
+                <PhoneValidCheck valid={isPhoneValid} className="right-4" size={20} />
               </div>
+              {phoneError && (
+                <p className="mt-2 text-sm font-medium text-destructive">
+                  {phoneError}
+                </p>
+              )}
             </div>
 
             <div>

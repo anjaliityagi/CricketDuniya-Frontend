@@ -5,16 +5,18 @@ import {
   Camera,
   Edit3,
   Loader2,
+  LogOut,
   Medal,
   Phone,
   RefreshCw,
   Save,
   Shield,
   Star,
-  Trophy,
+  TrendingUp,
   User,
   X,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,7 +31,6 @@ import type {
   FieldingStats,
 } from "@/services/profile";
 import { cn } from "@/lib/utils";
-import { IconBase } from "react-icons";
 
 type ProfileTab = "batting" | "bowling" | "fielding";
 
@@ -40,7 +41,8 @@ const tabs: { id: ProfileTab; label: string }[] = [
 ];
 
 export default function Profile() {
-  const { token, setSession } = useAuth();
+  const navigate = useNavigate();
+  const { token, setSession, logout } = useAuth();
   const {
     data: profile,
     isLoading,
@@ -135,6 +137,11 @@ export default function Profile() {
     }
   }
 
+  function handleLogout() {
+    logout();
+    navigate("/login");
+  }
+
   useEffect(() => {
     if (!isEditing) {
       return;
@@ -206,75 +213,77 @@ export default function Profile() {
 
       <Card className="overflow-hidden border-border bg-card/95 py-0 shadow-xl">
         <div className="india-accent-strip h-1.5" />
-        <CardContent className="p-5">
-          <div className="rounded-2xl border border-border bg-background/75 p-4 shadow-inner">
+        <CardContent className="space-y-3 p-5">
+          <div className="relative rounded-2xl border border-border bg-background/75 p-4 shadow-inner">
+            <div className="absolute right-3 top-3 flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={handleLogout}
+                aria-label="Logout"
+                title="Logout"
+              >
+                <LogOut size={14} />
+              </Button>
+            </div>
+
             <div className="flex items-center gap-4">
-              <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-2xl border border-primary/30 bg-primary/15 text-2xl font-black text-primary">
-                {user.profile_image ? (
-                  <img
-                    src={user.profile_image}
-                    alt={user.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  initials
-                )}
+              <div className="relative size-20 shrink-0">
+                <div className="grid size-20 place-items-center overflow-hidden rounded-2xl border border-primary/30 bg-primary/15 text-2xl font-black text-primary">
+                  {user.profile_image ? (
+                    <img
+                      src={user.profile_image}
+                      alt={user.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    initials
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="icon"
+                  className="absolute -bottom-1.5 -right-1.5 size-7 rounded-full border-2 border-background shadow-md"
+                  onClick={openProfileEditor}
+                  aria-label="Edit profile"
+                  title="Edit profile"
+                >
+                  <Edit3 size={12} />
+                </Button>
               </div>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h2 className="truncate text-2xl font-black uppercase leading-tight">
-                      {user.name}
-                    </h2>
-                    <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                      <Phone size={13} />
-                      {user.phone_number}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="shrink-0 gap-1 text-primary"
-                    onClick={openProfileEditor}
-                  >
-                    <Edit3 size={14} />
-                    Edit
-                  </Button>
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <StylePill
-                    icon={Activity}
-                    label={user.batting_style || "Batting style"}
-                  />
-                  <StylePill
-                    icon={Shield}
-                    label={user.bowling_style || "Bowling style"}
-                  />
-                </div>
+              <div className="min-w-0 flex-1 pr-16">
+                <h2 className="break-words text-2xl font-black uppercase leading-tight">
+                  {user.name}
+                </h2>
+                <p className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                  <Phone size={14} />
+                  {user.phone_number}
+                </p>
               </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-[1fr_auto] items-center gap-4">
-              <div className="grid grid-cols-4 gap-2 text-center">
-                <SummaryMini value={summary.matches_played} label="Played" />
-                <SummaryMini value={summary.won} label="Won" />
-                <SummaryMini value={summary.lost} label="Lost" />
-                <SummaryMini value={summary.mvps} label="MVPs" />
-              </div>
-              <WinRing value={summary.win_percentage} />
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <StyleValue icon={Activity} value={user.batting_style || "Not set"} />
+              <StyleValue icon={Shield} value={user.bowling_style || "Not set"} />
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-border bg-card/80 p-3">
+            <div className="grid grid-cols-4 gap-2 text-center">
+              <SummaryMini value={summary.matches_played} label="Played" />
+              <SummaryMini value={summary.won} label="Won" />
+              <SummaryMini value={summary.lost} label="Lost" />
+              <SummaryMini value={summary.mvps} label="MVPs" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <HeroMetric icon={Star} label="Points" value={summary.points} />
-            <HeroMetric
-              icon={Trophy}
-              label="Win %"
-              value={`${summary.win_percentage}%`}
-            />
+            <WinRateMetric value={summary.win_percentage} />
           </div>
         </CardContent>
       </Card>
@@ -461,22 +470,22 @@ export default function Profile() {
   );
 }
 
-function StylePill({
+function StyleValue({
   icon: Icon,
-  label,
+  value,
 }: {
   icon: ComponentType<{ size?: number }>;
-  label: string;
+  value: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-      <Icon size={12} />
-      {label}
-    </span>
+    <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-card/70 px-3 py-2">
+      <Icon size={14} className="shrink-0 text-primary" />
+      <span className="truncate text-xs font-bold text-foreground">{value}</span>
+    </div>
   );
 }
 
-function SummaryMini({ value, label }: { value: number; label: string }) {
+function SummaryMini({ value, label }: { value: string | number; label: string }) {
   return (
     <div>
       <p className="text-lg font-black leading-none">{value}</p>
@@ -487,21 +496,23 @@ function SummaryMini({ value, label }: { value: number; label: string }) {
   );
 }
 
-function WinRing({ value }: { value: number }) {
+function WinRateMetric({ value }: { value: number }) {
+  const normalizedValue = Math.min(100, Math.max(0, value));
+
   return (
-    <div className="grid place-items-center">
-      <div
-        className="grid size-17 place-items-center rounded-full"
-        style={{
-          background: `conic-gradient(#ff8a00 ${value * 3.6}deg, rgb(255 255 255 / 0.12) 0deg)`,
-        }}
-      >
-        <div className="grid size-13 place-items-center rounded-full bg-card text-center">
-          <p className="text-sm font-black">{value}%</p>
-          <p className="text-[8px] font-bold uppercase text-muted-foreground">
-            Win
-          </p>
-        </div>
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <TrendingUp size={18} className="mb-2 text-primary" />
+      <div>
+        <p className="text-2xl font-black leading-none">{value}%</p>
+        <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+          Win rate
+        </p>
+      </div>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-primary transition-all"
+          style={{ width: `${normalizedValue}%` }}
+        />
       </div>
     </div>
   );
@@ -518,7 +529,7 @@ function HeroMetric({
 }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <IconBase size={18} className="mb-2 text-primary" />
+      <Icon size={18} className="mb-2 text-primary" />
       <p className="text-2xl font-black leading-none">{value}</p>
       <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
         {label}
@@ -608,13 +619,10 @@ function StatsPanel({
 function StatGrid({ items }: { items: [string, number][] }) {
   return (
     <div className="grid grid-cols-2 gap-3">
-      {items.map(([label, value], index) => (
+      {items.map(([label, value]) => (
         <div
           key={label}
-          className={cn(
-            "rounded-xl border border-border bg-background p-4",
-            index < 3 && "bg-primary/10",
-          )}
+          className="rounded-xl border border-border bg-background p-4"
         >
           <p className="text-2xl font-black leading-none text-primary">
             {value}

@@ -1,6 +1,7 @@
 import axios from "axios";
 
 import api, { AUTH_TOKEN_KEY, AUTH_USER_KEY } from "@/lib/api";
+import { getDisplayText } from "@/lib/utils";
 
 export type LoginPayload = {
   phone_number: string;
@@ -156,11 +157,16 @@ export function getAuthErrorMessage(error: unknown) {
       | string
       | undefined;
 
-    if (typeof data === "string") {
-      return data;
+    const message =
+      typeof data === "string"
+        ? getDisplayText(data)
+        : getDisplayText(data?.message) || getDisplayText(data?.error);
+
+    if (message) {
+      return message;
     }
 
-    return data?.message ?? data?.error ?? "Login failed. Please try again.";
+    return "Login failed. Please try again.";
   }
 
   return "Something went wrong. Please try again.";
@@ -174,7 +180,9 @@ export function getPasswordResetErrorMessage(error: unknown) {
       | string
       | undefined;
     const message =
-      typeof data === "string" ? data : data?.message ?? data?.error ?? "";
+      typeof data === "string"
+        ? getDisplayText(data)
+        : getDisplayText(data?.message) || getDisplayText(data?.error);
     const normalizedMessage = message.toLowerCase();
 
     if (status === 400 && normalizedMessage.includes("expired otp")) {

@@ -1,59 +1,57 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { LogOut, Menu, Shield, X } from "lucide-react";
+import { Link, NavLink } from "react-router-dom";
+import {
+  CalendarDays,
+  House,
+  Shield,
+  Users,
+  UsersRound,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
+import { useProfileQuery } from "@/hooks/useProfileQuery";
+import { cn } from "@/lib/utils";
+
+const bottomTabs = [
+  { to: "/home", label: "Home", icon: House },
+  { to: "/matches", label: "Matches", icon: CalendarDays },
+  { to: "/teams", label: "Teams", icon: UsersRound },
+  { to: "/players", label: "Players", icon: Users },
+];
 
 export default function Navbar() {
-  const navigate = useNavigate();
-  const { isAuthenticated, logout, user } = useAuth();
-  const [open, setOpen] = useState(false);
-  const displayName = user?.name || "Profile";
-  const initials = displayName
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
-  const linkClass =
-    "block rounded-xl px-3 py-3 text-base font-semibold text-foreground transition hover:bg-muted";
-
-  function closeMenu() {
-    setOpen(false);
-  }
-
-  function handleLogout() {
-    logout();
-    closeMenu();
-    navigate("/login");
-  }
+  const { isAuthenticated, user } = useAuth();
+  const { data: profile } = useProfileQuery(isAuthenticated);
+  const displayName =
+    getStringValue(profile?.user.name) ||
+    getStringValue(user?.name) ||
+    getStringValue(user?.full_name) ||
+    getStringValue(user?.fullName) ||
+    getStringValue(user?.username) ||
+    getStringValue(user?.first_name) ||
+    getStringValue(user?.firstName) ||
+    "Profile";
+  const initials = getInitials(
+    displayName,
+    getStringValue(user?.first_name) || getStringValue(user?.firstName),
+    getStringValue(user?.last_name) || getStringValue(user?.lastName),
+  ).toUpperCase();
 
   return (
     <>
-      <nav className="bg-background/92 backdrop-blur border-b border-border relative z-30">
+      <nav className="glass-nav sticky top-0 z-30 border-b border-border/80 backdrop-blur-xl">
         <div className="india-accent-strip h-1" />
-        <div className="max-w-[430px] mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-[430px] mx-auto px-4 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => setOpen(true)}
-              aria-label="Open menu"
-            >
-              <Menu />
-            </Button>
-            <span className="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+            <span className="grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20">
               <Shield size={18} />
             </span>
             <div>
-              <h1 className="brand-wordmark text-xl font-black tracking-tight">
+              <h1 className="brand-wordmark text-[1.35rem] font-black leading-none">
                 CricRx
               </h1>
-              <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-muted-foreground">
+              <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.24em] text-muted-foreground">
                 Cricket hub
               </p>
             </div>
@@ -65,13 +63,13 @@ export default function Navbar() {
               <Button
                 asChild
                 variant="ghost"
-                className="h-10 max-w-[132px] gap-2 rounded-full px-2"
+                size="icon"
+                className="size-10 rounded-full p-0"
               >
-                <Link to="/profile">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-black text-primary-foreground">
+                <Link to="/profile" aria-label={`Open ${displayName} profile`} title={displayName}>
+                  <span className="grid size-9 place-items-center rounded-full bg-primary text-sm font-black text-primary-foreground shadow-sm shadow-primary/25">
                     {initials}
                   </span>
-                  <span className="truncate text-xs font-bold">{displayName}</span>
                 </Link>
               </Button>
             ) : (
@@ -83,70 +81,44 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {open && (
-        <div className="fixed inset-0 z-50">
-          <div
-            className="nav-drawer-overlay absolute inset-0 bg-black/45"
-            onClick={closeMenu}
-          />
-
-          <div className="nav-drawer absolute left-0 top-0 h-full w-[82vw] max-w-[340px] bg-background shadow-2xl">
-            <div className="india-accent-strip h-1" />
-            <div className="px-4 py-4 flex items-center justify-between border-b border-border">
-              <div>
-                <h2 className="text-xl font-extrabold tracking-tight">Menu</h2>
-                <p className="text-xs font-semibold text-muted-foreground">
-                  <span className="brand-wordmark">CricRx</span>
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={closeMenu}
-                aria-label="Close menu"
-              >
-                <X />
-              </Button>
-            </div>
-
-            <div className="px-4 py-6 space-y-2">
-              <Link onClick={closeMenu} to="/home" className={linkClass}>
-                Home
-              </Link>
-              <Link onClick={closeMenu} to="/matches" className={linkClass}>
-                Matches
-              </Link>
-              <Link onClick={closeMenu} to="/teams" className={linkClass}>
-                Teams
-              </Link>
-              <Link onClick={closeMenu} to="/players" className={linkClass}>
-                Players
-              </Link>
-
-              <div className="pt-4 space-y-3">
-                {isAuthenticated ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full h-11 gap-2"
-                    onClick={handleLogout}
-                  >
-                    <LogOut size={18} />
-                    Logout
-                  </Button>
-                ) : (
-                  <Button asChild className="w-full h-11">
-                    <Link onClick={closeMenu} to="/login">
-                      Login
-                    </Link>
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-background/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-14px_34px_rgb(9_21_36_/_0.14)] backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[430px] items-center justify-between gap-1">
+          {bottomTabs.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                cn(
+                  "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[10px] font-black uppercase tracking-wide text-muted-foreground transition",
+                  "hover:bg-muted hover:text-foreground",
+                  isActive && "bg-primary text-primary-foreground shadow-sm shadow-primary/20",
+                )
+              }
+            >
+              <Icon size={19} strokeWidth={2.4} />
+              <span className="max-w-full truncate">{label}</span>
+            </NavLink>
+          ))}
         </div>
-      )}
+      </nav>
     </>
   );
+}
+
+function getStringValue(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getInitials(displayName: string, firstName = "", lastName = "") {
+  if (firstName && lastName) {
+    return `${firstName[0]}${lastName[0]}`;
+  }
+
+  const nameParts = displayName.split(/\s+/).filter(Boolean);
+
+  if (nameParts.length > 1) {
+    return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`;
+  }
+
+  return nameParts[0]?.[0] || "P";
 }

@@ -11,7 +11,7 @@ type TeamCardProps = {
 function TeamCard({ team }: TeamCardProps) {
   return (
     <Link to={`/teams/${team.id}`} className="block">
-      <Card className="mb-4 rounded-2xl border border-border bg-card py-0 shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.99]">
+      <Card className="mb-4 rounded-2xl border border-border bg-card py-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99]">
         <CardContent className="p-5 space-y-3">
           <h3 className="text-xl font-bold leading-tight">{team.name}</h3>
 
@@ -29,7 +29,7 @@ function TeamCard({ team }: TeamCardProps) {
             )}
           </div>
 
-          <div className="flex items-center gap-2 text-sm font-medium border-t border-dashed border-border pt-3">
+          <div className="flex items-center gap-2 border-t border-dashed border-border pt-3 text-sm font-bold">
             <Users size={16} className="text-muted-foreground" />
             <span>{team.playerCount} players</span>
           </div>

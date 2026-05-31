@@ -16,10 +16,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import PhoneValidCheck from "@/components/PhoneValidCheck";
 import { useForgotPasswordMutation } from "@/hooks/useForgotPasswordMutation";
 import { useVerifyOtpMutation } from "@/hooks/useVerifyOtpMutation";
 import { getPasswordResetErrorMessage } from "@/services/auth";
-import { isValidPhoneNumber, normalizePhoneNumber } from "@/lib/utils";
+import {
+  getPhoneValidationMessage,
+  isValidPhoneNumber,
+  normalizePhoneNumber,
+} from "@/lib/utils";
 
 const OTP_EXPIRY_SECONDS = 5 * 60;
 const RESEND_COOLDOWN_SECONDS = 45;
@@ -48,6 +53,8 @@ export default function ForgotPassword() {
   const [otpSecondsLeft, setOtpSecondsLeft] = useState(0);
   const [resendSecondsLeft, setResendSecondsLeft] = useState(0);
   const normalizedPhone = useMemo(() => normalizePhoneNumber(phone), [phone]);
+  const phoneError = getPhoneValidationMessage(phone);
+  const isPhoneValid = !phoneError && isValidPhoneNumber(phone);
   const isSendingOtp = forgotPasswordMutation.isPending;
   const isVerifyingOtp = verifyOtpMutation.isPending;
   const isSubmitting = isSendingOtp || isVerifyingOtp;
@@ -73,8 +80,8 @@ export default function ForgotPassword() {
   }, [resendSecondsLeft, step]);
 
   async function sendOtp(nextMessage = "OTP sent successfully") {
-    if (!isValidPhoneNumber(phone)) {
-      setError("Enter a valid 10-digit phone number");
+    if (phoneError || !isValidPhoneNumber(phone)) {
+      setError(phoneError || "Enter a valid 10-digit phone number");
       return;
     }
 
@@ -109,8 +116,8 @@ export default function ForgotPassword() {
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!isValidPhoneNumber(phone)) {
-      setError("Enter a valid 10-digit phone number");
+    if (phoneError || !isValidPhoneNumber(phone)) {
+      setError(phoneError || "Enter a valid 10-digit phone number");
       return;
     }
 
@@ -182,13 +189,22 @@ export default function ForgotPassword() {
                       type="tel"
                       inputMode="numeric"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        setError("");
+                      }}
                       placeholder="9876543210"
-                      className="pl-10 h-11"
+                      className="pl-10 pr-10 h-11"
                       required
                       disabled={isSubmitting}
                     />
+                    <PhoneValidCheck valid={isPhoneValid} className="right-3" />
                   </div>
+                  {phoneError && (
+                    <p className="mt-2 text-sm font-medium text-destructive">
+                      {phoneError}
+                    </p>
+                  )}
                 </div>
 
                 {error && <p className="text-sm font-medium">{error}</p>}

@@ -17,16 +17,16 @@ export default function Teams() {
   return (
     <div className="max-w-[430px] mx-auto min-h-[85vh] pb-28">
       <div className="mb-6">
-        <p className="brand-wordmark text-[11px] font-black uppercase tracking-[0.2em] mb-2">
+        <p className="brand-wordmark mb-2 text-[11px] font-black uppercase tracking-[0.2em]">
           CricRx
         </p>
-        <h1 className="text-3xl font-black tracking-tight">Teams</h1>
-        <p className="text-muted-foreground text-sm mt-2 leading-relaxed">
+        <h1 className="text-3xl font-black">Teams</h1>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           View teams created from matches
         </p>
       </div>
 
-      <div className="rounded-xl border border-border bg-muted px-4 py-3 mb-6 text-center">
+      <div className="mb-6 rounded-2xl border border-border bg-card/75 px-4 py-3 text-center shadow-sm">
         <p className="text-2xl font-black">{allTeams.length}</p>
         <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mt-1">
           Total Teams

@@ -3,11 +3,16 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
+  Check,
   Loader2,
   Phone,
   Plus,
   Search,
+  Sparkles,
+  Trash2,
+  UserPlus,
   Users,
+  X,
 } from "lucide-react";
 import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,7 +27,12 @@ import {
   type TeamPlayersBatchInput,
   type UserSearchResult,
 } from "@/services/teams";
-import { cn, isValidPhoneNumber, normalizePhoneNumber } from "@/lib/utils";
+import {
+  cn,
+  getPhoneValidationMessage,
+  isValidPhoneNumber,
+  normalizePhoneNumber,
+} from "@/lib/utils";
 
 type TeamSide = "a" | "b";
 
@@ -133,6 +143,20 @@ function toPlayerLabel(player: LocalDraftPlayer) {
   return player.name || player.phone_number || "Unnamed player";
 }
 
+function normalizePlayerName(name: string) {
+  return name.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length > 1) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+
+  return (parts[0]?.slice(0, 2) || "P").toUpperCase();
+}
+
 function toApiPlayers(players: LocalDraftPlayer[]) {
   return players.map((player) =>
     player.userId
@@ -181,9 +205,25 @@ export default function MatchPlayerDraft() {
   const [manualName, setManualName] = useState("");
   const [manualPhone, setManualPhone] = useState("");
   const [manualError, setManualError] = useState("");
+  const manualPhoneError = getPhoneValidationMessage(manualPhone);
 
   const { data: userResultsRaw = [], isFetching: isSearching } = useUserSearchQuery(search);
   const userResults = userResultsRaw ?? [];
+  const trimmedSearch = search.trim();
+  const canSearch = trimmedSearch.length >= 2;
+  const shouldShowManualAdd = canSearch && !isSearching && userResults.length === 0;
+
+  useEffect(() => {
+    if (!shouldShowManualAdd) return;
+
+    const digitsOnly = trimmedSearch.replace(/\D/g, "");
+
+    if (digitsOnly.length >= 6 && !manualPhone) {
+      setManualPhone(digitsOnly.slice(0, 10));
+    } else if (!manualName) {
+      setManualName(trimmedSearch);
+    }
+  }, [manualName, manualPhone, shouldShowManualAdd, trimmedSearch]);
 
   useEffect(() => {
     if (isLoadingMatch || !match || !id) return;
@@ -262,6 +302,16 @@ export default function MatchPlayerDraft() {
     return ids;
   }, [teamAPlayers, teamBPlayers]);
 
+  const takenNames = useMemo(() => {
+    const names = new Set<string>();
+    [...teamAPlayers, ...teamBPlayers].forEach((player) => {
+      const normalizedName = normalizePlayerName(player.name);
+      if (!normalizedName) return;
+      names.add(normalizedName);
+    });
+    return names;
+  }, [teamAPlayers, teamBPlayers]);
+
   function addLocalPlayer(side: TeamSide, player: LocalDraftPlayer) {
     if (side === "a") {
       setTeamAPlayers((current) => [...current, player]);
@@ -270,11 +320,27 @@ export default function MatchPlayerDraft() {
     }
   }
 
+  function removeLocalPlayer(side: TeamSide, localId: string) {
+    if (side === "a") {
+      setTeamAPlayers((current) =>
+        current.filter((player) => player.localId !== localId)
+      );
+    } else {
+      setTeamBPlayers((current) =>
+        current.filter((player) => player.localId !== localId)
+      );
+    }
+    setError("");
+    setNotice("Player removed. Draft turn order updated.");
+  }
+
   function handleAddUser(user: UserSearchResult) {
     const phoneKey = normalizePhoneNumber(user.phone_number ?? "");
+    const nameKey = normalizePlayerName(user.name);
     if (
       (phoneKey && takenPhones.has(phoneKey)) ||
-      takenUserIds.has(user.id.trim().toLowerCase())
+      takenUserIds.has(user.id.trim().toLowerCase()) ||
+      (nameKey && takenNames.has(nameKey))
     ) {
       setError("This player is already in one of the teams");
       return;
@@ -300,6 +366,8 @@ export default function MatchPlayerDraft() {
       phone_number: user.phone_number,
     });
     setSearch("");
+    setManualName("");
+    setManualPhone("");
     setNotice(
       waitingTeamName
         ? `${activeTeamName} picked a player. ${waitingTeamName}'s turn next.`
@@ -316,12 +384,12 @@ export default function MatchPlayerDraft() {
       return;
     }
 
-    if (!isValidPhoneNumber(manualPhone)) {
-      setManualError("Enter a valid 10-digit phone number");
+    if (manualPhoneError || !isValidPhoneNumber(manualPhone)) {
+      setManualError(manualPhoneError || "Enter a valid 10-digit phone number");
       return;
     }
 
-    if (takenPhones.has(phoneNumber)) {
+    if (takenPhones.has(phoneNumber) || takenNames.has(normalizePlayerName(name))) {
       setManualError("This player is already in one of the teams");
       return;
     }
@@ -345,6 +413,7 @@ export default function MatchPlayerDraft() {
     });
     setManualName("");
     setManualPhone("");
+    setSearch("");
     setNotice(
       waitingTeamName
         ? `${activeTeamName} picked a player. ${waitingTeamName}'s turn next.`
@@ -434,46 +503,92 @@ export default function MatchPlayerDraft() {
         </div>
       )}
 
-      <Card className="bg-card border-border mb-4">
-        <CardContent className="p-5 space-y-4">
-          <div className="rounded-lg border border-border bg-muted/60 p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Search size={15} className="text-muted-foreground" />
-              <p className="text-sm font-semibold">Search and pick player</p>
+      <Card className="mb-4 overflow-hidden border-border bg-card">
+        <div className="india-accent-strip h-1" />
+        <CardContent className="p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-black uppercase tracking-wide">Pick Console</p>
+              <p className="text-xs font-semibold text-muted-foreground">
+                Add next player to {activeTeamName}
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground mb-3">
-              Add a player to {activeTeamName}
-            </p>
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name or phone"
-              disabled={!activeSide || isSubmitting}
-            />
+            <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-primary">
+              Pick #{pickNumber}
+            </span>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-background/75 p-3">
+            <div className="relative">
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-primary"
+              />
+              <Input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setManualName("");
+                  setManualPhone("");
+                  setManualError("");
+                  setError("");
+                }}
+                className="h-12 rounded-xl bg-card pl-9 pr-10 text-sm font-bold"
+                placeholder="Search player name or phone"
+                disabled={!activeSide || isSubmitting}
+              />
+              {search && (
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                  onClick={() => {
+                    setSearch("");
+                    setManualName("");
+                    setManualPhone("");
+                    setManualError("");
+                    setError("");
+                  }}
+                  aria-label="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
 
             {isSearching && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-3">
-                <Loader2 className="animate-spin" size={14} />
-                Searching players
+              <div className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs font-bold text-muted-foreground">
+                <Loader2 className="animate-spin text-primary" size={14} />
+                Scanning player grid
               </div>
             )}
 
-            {search.trim().length >= 2 && userResults.length > 0 && (
+            {!canSearch && !isSearching && (
+              <div className="mt-3 flex items-center gap-2 rounded-xl border border-dashed border-border px-3 py-2 text-xs font-semibold text-muted-foreground">
+                <Sparkles size={14} className="text-primary" />
+                Search first. Create option unlocks only if no player exists.
+              </div>
+            )}
+
+            {canSearch && userResults.length > 0 && (
               <div className="space-y-2 mt-3">
                 {userResults.map((user) => {
                   const phoneNorm = normalizePhoneNumber(user.phone_number ?? "");
                   const alreadyAdded =
                     (phoneNorm && takenPhones.has(phoneNorm)) ||
-                    takenUserIds.has(user.id.trim().toLowerCase());
+                    takenUserIds.has(user.id.trim().toLowerCase()) ||
+                    takenNames.has(normalizePlayerName(user.name));
 
                   return (
                     <div
                       key={user.id}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2"
+                      className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl border border-border bg-card px-3 py-2.5 shadow-sm"
                     >
+                      <div className="grid size-10 place-items-center rounded-xl bg-primary/15 text-sm font-black text-primary">
+                        {getInitials(user.name)}
+                      </div>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{user.name}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="truncate text-sm font-black">{user.name}</p>
+                        <p className="truncate text-xs font-semibold text-muted-foreground">
                           {user.phone_number}
                         </p>
                       </div>
@@ -482,8 +597,19 @@ export default function MatchPlayerDraft() {
                         size="sm"
                         disabled={alreadyAdded || !activeSide || isSubmitting}
                         onClick={() => handleAddUser(user)}
+                        className="h-9 rounded-full px-3"
                       >
-                        {alreadyAdded ? "Taken" : `Pick #${pickNumber}`}
+                        {alreadyAdded ? (
+                          <>
+                            <Check size={14} />
+                            Taken
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus size={14} />
+                            Pick
+                          </>
+                        )}
                       </Button>
                     </div>
                   );
@@ -491,59 +617,71 @@ export default function MatchPlayerDraft() {
               </div>
             )}
 
-            {search.trim().length >= 2 && !isSearching && userResults.length === 0 && (
-              <p className="text-xs text-muted-foreground mt-3">No users found</p>
-            )}
-          </div>
+            {shouldShowManualAdd && (
+              <div className="mt-3 rounded-2xl border border-primary/30 bg-primary/10 p-3">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="grid size-8 place-items-center rounded-xl bg-primary text-primary-foreground">
+                    <Plus size={15} />
+                  </span>
+                  <div>
+                    <p className="text-sm font-black">Create player card</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground">
+                      No existing player found for this search
+                    </p>
+                  </div>
+                </div>
 
-          <div className="rounded-lg border border-border bg-muted/60 p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Plus size={15} className="text-muted-foreground" />
-              <p className="text-sm font-semibold">Add new player</p>
-            </div>
-            <p className="text-xs text-muted-foreground mb-3">
-              Create a guest player for {activeTeamName}
-            </p>
-            <div className="space-y-2">
-              <Input
-                value={manualName}
-                onChange={(e) => {
-                  setManualName(e.target.value);
-                  setManualError("");
-                }}
-                placeholder="Player name"
-                disabled={!activeSide || isSubmitting}
-              />
-              <div className="relative">
-                <Phone
-                  size={15}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                />
-                <Input
-                  value={manualPhone}
-                  onChange={(e) => {
-                    setManualPhone(e.target.value);
-                    setManualError("");
-                  }}
-                  inputMode="numeric"
-                  className="pl-9"
-                  placeholder="9876543210"
+                <div className="space-y-2">
+                  <Input
+                    value={manualName}
+                    onChange={(e) => {
+                      setManualName(e.target.value);
+                      setManualError("");
+                    }}
+                    className="h-11 rounded-xl bg-card text-sm font-bold"
+                    placeholder="Player name"
+                    disabled={!activeSide || isSubmitting}
+                  />
+                  <div className="relative">
+                    <Phone
+                      size={15}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    />
+                    <Input
+                      value={manualPhone}
+                      onChange={(e) => {
+                        setManualPhone(e.target.value);
+                        setManualError("");
+                      }}
+                      inputMode="numeric"
+                      className="h-11 rounded-xl bg-card pl-9 text-sm font-bold"
+                      placeholder="9876543210"
+                      disabled={!activeSide || isSubmitting}
+                    />
+                  </div>
+                </div>
+
+                {manualPhoneError && (
+                  <p className="mt-2 text-xs font-bold text-destructive">
+                    {manualPhoneError}
+                  </p>
+                )}
+                {manualError && (
+                  <p className="mt-2 text-xs font-bold text-destructive">
+                    {manualError}
+                  </p>
+                )}
+                <Button
+                  type="button"
+                  className="mt-3 w-full gap-2 rounded-xl"
                   disabled={!activeSide || isSubmitting}
-                />
+                  onClick={handleAddManual}
+                >
+                  Pick for {activeTeamName}
+                  <ArrowRight size={16} />
+                </Button>
               </div>
-              {manualError && (
-                <p className="text-xs font-medium text-destructive">{manualError}</p>
-              )}
-              <Button
-                type="button"
-                className="w-full gap-2"
-                disabled={!activeSide || isSubmitting}
-                onClick={handleAddManual}
-              >
-                Pick for {activeTeamName}
-                <ArrowRight size={16} />
-              </Button>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -553,18 +691,22 @@ export default function MatchPlayerDraft() {
         <SquadCard
           label={match.teamOneName}
           players={teamAPlayers}
+          side="a"
           isActive={activeSide === "a"}
           pickNumbers={draftTimeline
             .filter((pick) => pick.side === "a")
             .map((pick) => pick.pickNumber)}
+          onRemove={removeLocalPlayer}
         />
         <SquadCard
           label={match.teamTwoName}
           players={teamBPlayers}
+          side="b"
           isActive={activeSide === "b"}
           pickNumbers={draftTimeline
             .filter((pick) => pick.side === "b")
             .map((pick) => pick.pickNumber)}
+          onRemove={removeLocalPlayer}
         />
       </div>
 
@@ -663,13 +805,17 @@ function DraftTeamCircle({
 function SquadCard({
   label,
   players,
+  side,
   isActive,
   pickNumbers,
+  onRemove,
 }: {
   label: string;
   players: LocalDraftPlayer[];
+  side: TeamSide;
   isActive: boolean;
   pickNumbers: number[];
+  onRemove: (side: TeamSide, localId: string) => void;
 }) {
   return (
     <Card
@@ -694,7 +840,7 @@ function SquadCard({
             players.map((player, index) => (
               <div
                 key={player.localId}
-                className="flex items-center gap-3 rounded-lg border border-border bg-muted/60 px-3 py-2"
+                className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl border border-border bg-muted/60 px-3 py-2"
               >
                 {pickNumbers[index] && (
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-background text-[11px] font-bold">
@@ -707,6 +853,16 @@ function SquadCard({
                     <p className="text-xs text-muted-foreground">{player.phone_number}</p>
                   )}
                 </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => onRemove(side, player.localId)}
+                  aria-label={`Remove ${toPlayerLabel(player)}`}
+                >
+                  <Trash2 size={15} />
+                </Button>
               </div>
             ))
           ) : (

@@ -45,7 +45,7 @@ function MatchCard({ match }: MatchCardProps) {
     <Link to={`/matches/${match.id}`} className="block">
       <Card
         className={cn(
-          "mb-4 overflow-hidden rounded-2xl border border-border bg-card py-0 shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.99]",
+          "mb-4 overflow-hidden rounded-2xl border border-border bg-card py-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99]",
         isLive && "border-primary/35 shadow-primary/10 ring-1 ring-primary/15"
         )}
       >
@@ -68,11 +68,11 @@ function MatchCard({ match }: MatchCardProps) {
             </p>
           </div>
 
-          <h3 className="text-[1.35rem] font-bold leading-snug tracking-tight">
+          <h3 className="text-[1.32rem] font-bold leading-snug">
             {title}
           </h3>
 
-          <div className="rounded-xl bg-background border border-border overflow-hidden">
+          <div className="overflow-hidden rounded-xl border border-border bg-background/70">
             <div className="flex items-stretch">
               <TeamScore
                 team={match.teamOneName}
@@ -113,7 +113,7 @@ function TeamScore({
       </p>
       <p
         className={cn(
-          "font-mono text-base font-bold tracking-tight",
+          "text-base font-extrabold tabular-nums",
           highlight ? "text-foreground" : "text-foreground/80"
         )}
       >

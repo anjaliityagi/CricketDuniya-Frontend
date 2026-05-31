@@ -6,9 +6,9 @@ type MainLayoutProps = {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="team-india-surface min-h-screen text-foreground">
+    <div className="app-shell team-india-surface text-foreground">
       <Navbar />
-      <main className="px-3 py-3 pb-20">{children}</main>
+      <main className="px-3 py-4 pb-20">{children}</main>
     </div>
   );
 }

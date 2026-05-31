@@ -39,11 +39,11 @@ export default function Matches() {
   return (
     <div className="max-w-[430px] mx-auto min-h-[85vh] pb-28">
       <div className="mb-6">
-        <p className="brand-wordmark text-[11px] font-black uppercase tracking-[0.2em] mb-2">
+        <p className="brand-wordmark mb-2 text-[11px] font-black uppercase tracking-[0.2em]">
           CricRx
         </p>
-        <h1 className="text-3xl font-black tracking-tight">Matches</h1>
-        <p className="text-muted-foreground text-sm mt-2 leading-relaxed">
+        <h1 className="text-3xl font-black">Matches</h1>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           Follow live scores and upcoming games
         </p>
       </div>
@@ -155,10 +155,10 @@ function StatCard({
   return (
     <div
       className={cn(
-        "rounded-xl border px-3 py-3 text-center transition-colors",
+        "rounded-2xl border px-3 py-3 text-center transition-colors shadow-sm",
         active
           ? "border-primary/30 bg-primary/10"
-          : "border-border bg-muted"
+          : "border-border bg-card/75"
       )}
     >
       <Icon

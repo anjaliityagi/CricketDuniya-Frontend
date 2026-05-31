@@ -6,11 +6,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import PhoneValidCheck from "@/components/PhoneValidCheck";
 import SplashScreen from "@/components/SplashScreen";
 import { useAuth } from "@/context/AuthContext";
 import { useLoginMutation } from "@/hooks/useLoginMutation";
 import { getAuthErrorMessage } from "@/services/auth";
-import { isValidPhoneNumber, normalizePhoneNumber } from "@/lib/utils";
+import {
+  getPhoneValidationMessage,
+  getDisplayText,
+  isValidPhoneNumber,
+  normalizePhoneNumber,
+} from "@/lib/utils";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -23,11 +29,13 @@ export default function Login() {
   const [error, setError] = useState("");
   const [showSplash, setShowSplash] = useState(true);
   const isSubmitting = loginMutation.isPending;
+  const phoneError = getPhoneValidationMessage(phone);
+  const isPhoneValid = !phoneError && isValidPhoneNumber(phone);
   const successMessage =
     typeof location.state === "object" &&
     location.state &&
     "message" in location.state
-      ? String(location.state.message)
+      ? getDisplayText(location.state.message)
       : "";
 
   useEffect(() => {
@@ -48,8 +56,8 @@ export default function Login() {
     e.preventDefault();
     const phoneNumber = normalizePhoneNumber(phone);
 
-    if (!isValidPhoneNumber(phone)) {
-      setError("Enter a valid 10-digit phone number");
+    if (phoneError || !isValidPhoneNumber(phone)) {
+      setError(phoneError || "Enter a valid 10-digit phone number");
       return;
     }
     if (!password) {
@@ -113,13 +121,22 @@ export default function Login() {
                       type="tel"
                       inputMode="numeric"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        setError("");
+                      }}
                       placeholder="9876543210"
-                      className="pl-10 h-11"
+                      className="pl-10 pr-10 h-11"
                       required
                       disabled={isSubmitting}
                     />
+                    <PhoneValidCheck valid={isPhoneValid} className="right-3" />
                   </div>
+                  {phoneError && (
+                    <p className="mt-2 text-sm font-medium text-destructive">
+                      {phoneError}
+                    </p>
+                  )}
                 </div>
 
                 <div>

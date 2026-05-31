@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -30,46 +31,46 @@
 
 :root,
 .light {
-  --radius: 0.65rem;
-  --background: #f3f7ff;
-  --foreground: #071a3d;
+  --radius: 0.75rem;
+  --background: #f6f8fc;
+  --foreground: #091524;
   --card: #ffffff;
-  --card-foreground: #071a3d;
+  --card-foreground: #091524;
   --popover: #ffffff;
-  --popover-foreground: #071a3d;
-  --primary: #0b5ed7;
+  --popover-foreground: #091524;
+  --primary: #0a5bd8;
   --primary-foreground: #ffffff;
-  --secondary: #e7efff;
-  --secondary-foreground: #0a3477;
-  --muted: #eaf1ff;
-  --muted-foreground: #49617f;
-  --accent: #fff1df;
-  --accent-foreground: #8a3f00;
+  --secondary: #eaf1fb;
+  --secondary-foreground: #12345f;
+  --muted: #edf3fb;
+  --muted-foreground: #5a6b83;
+  --accent: #fff4df;
+  --accent-foreground: #7a4100;
   --destructive: #d92d20;
-  --border: #c8d8f4;
-  --input: #b9ccec;
-  --ring: #ff8a00;
+  --border: #d7e1ef;
+  --input: #cbd8e8;
+  --ring: #f59e0b;
 }
 
 .dark {
-  --background: #071a3d;
+  --background: #08111f;
   --foreground: #f7fbff;
-  --card: #0d2a60;
+  --card: #0f2138;
   --card-foreground: #f7fbff;
-  --popover: #0d2a60;
+  --popover: #0f2138;
   --popover-foreground: #f7fbff;
-  --primary: #ff8a00;
-  --primary-foreground: #081735;
-  --secondary: #103a80;
+  --primary: #f59e0b;
+  --primary-foreground: #08111f;
+  --secondary: #132d4b;
   --secondary-foreground: #f7fbff;
-  --muted: #123770;
-  --muted-foreground: #b8c8e8;
+  --muted: #13283f;
+  --muted-foreground: #aebed3;
   --accent: #0f7b55;
   --accent-foreground: #effff8;
   --destructive: #ff5c5c;
-  --border: #244d91;
-  --input: #315b9e;
-  --ring: #ffb13b;
+  --border: #263f5c;
+  --input: #35516f;
+  --ring: #f8b84e;
 }
 
 @layer base {
@@ -80,9 +81,23 @@
   body {
     @apply bg-background text-foreground antialiased;
     margin: 0;
-    font-family: system-ui, -apple-system, sans-serif;
+    min-width: 320px;
+    font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--background) 92%, #0b5ed7 8%) 0%, var(--background) 42%),
+      radial-gradient(circle at 50% -10%, color-mix(in srgb, var(--primary) 16%, transparent) 0, transparent 34rem),
+      linear-gradient(180deg, color-mix(in srgb, var(--background) 90%, #0a5bd8 10%) 0%, var(--background) 46%),
       var(--background);
+  }
+
+  h1,
+  h2,
+  h3,
+  .brand-wordmark {
+    font-family: "Space Grotesk", "Manrope", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 24%, transparent);
   }
 }

@@ -5,6 +5,8 @@ type TossCoinProps = {
   onFlip: () => void;
   disabled?: boolean;
   flipDurationMs?: number;
+  teamOneName?: string;
+  teamTwoName?: string;
 };
 
 export default function TossCoin({
@@ -12,7 +14,19 @@ export default function TossCoin({
   onFlip,
   disabled = false,
   flipDurationMs = 1400,
+  teamOneName = "",
+  teamTwoName = "",
 }: TossCoinProps) {
+  const teamOneInitial = getTeamInitial(teamOneName, "A");
+  const teamTwoInitial = getTeamInitial(teamTwoName, "B");
+  const coinLabel = (
+    <span className="coin-label">
+      <span>{teamOneInitial}</span>
+      <span className="coin-vs">vs</span>
+      <span>{teamTwoInitial}</span>
+    </span>
+  );
+
   return (
     <button
       type="button"
@@ -29,10 +43,10 @@ export default function TossCoin({
           }
         >
           <div className="coin-face coin-face-front">
-            <span className="coin-label">CD</span>
+            {coinLabel}
           </div>
           <div className="coin-face coin-face-back">
-            <span className="coin-label coin-label-back">CD</span>
+            <span className="coin-label-back">{coinLabel}</span>
           </div>
           <div className="coin-edge" aria-hidden="true" />
         </div>
@@ -45,4 +59,8 @@ export default function TossCoin({
       </div>
     </button>
   );
+}
+
+function getTeamInitial(name: string, fallback: string) {
+  return name.trim().charAt(0).toUpperCase() || fallback;
 }

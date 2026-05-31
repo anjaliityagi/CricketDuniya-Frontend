@@ -224,7 +224,12 @@ export default function MatchToss() {
       )}
 
       <div className="flex flex-col items-center mb-8">
-        <TossCoin isFlipping={isFlipping} onFlip={handleFlipCoin} />
+        <TossCoin
+          isFlipping={isFlipping}
+          onFlip={handleFlipCoin}
+          teamOneName={currentMatch.teamOneName}
+          teamTwoName={currentMatch.teamTwoName}
+        />
 
         <p className="text-sm text-muted-foreground mt-4">
           {isFlipping ? "Flipping..." : tossWinner ? "Toss result is ready" : "Tap coin to flip"}

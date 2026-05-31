@@ -1,13 +1,18 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { addPlayerToTeam, removePlayerFromTeam } from "@/services/teams";
+import {
+  addPlayerToTeam,
+  removePlayerFromTeam,
+  type AddTeamPlayerPayload,
+} from "@/services/teams";
 import { teamsQueryKey } from "@/hooks/useTeamsQuery";
 
 export function useAddTeamPlayerMutation(teamId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (playerId: string) => addPlayerToTeam(teamId!, playerId),
+    mutationFn: (payload: AddTeamPlayerPayload | string) =>
+      addPlayerToTeam(teamId!, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teams", teamId, "players"] });
       queryClient.invalidateQueries({ queryKey: ["teams", teamId] });

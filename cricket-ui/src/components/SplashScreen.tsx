@@ -42,7 +42,7 @@ export default function SplashScreen({ onDone }: SplashScreenProps) {
             className="splash-player"
             viewBox="0 0 260 300"
             role="img"
-            aria-label="Cricket bat and ball transition"
+            aria-label="Cricket bat transition"
           >
             <defs>
               <linearGradient id="batGradient" x1="0" x2="1">
@@ -54,15 +54,7 @@ export default function SplashScreen({ onDone }: SplashScreenProps) {
                 <stop offset="0%" stopColor="#fff2cd" />
                 <stop offset="100%" stopColor="#b8742a" />
               </linearGradient>
-              <linearGradient id="ballGradient" x1="0" x2="1" y1="0" y2="1">
-                <stop offset="0%" stopColor="#ffffff" />
-                <stop offset="45%" stopColor="#d9f7ef" />
-                <stop offset="100%" stopColor="#19a67b" />
-              </linearGradient>
             </defs>
-
-            <ellipse cx="130" cy="268" rx="92" ry="14" fill="rgb(0 0 0 / 0.18)" />
-
             <g className="splash-bat" transform="rotate(-23 134 144)">
               <rect
                 x="116"
@@ -89,31 +81,6 @@ export default function SplashScreen({ onDone }: SplashScreenProps) {
               />
             </g>
 
-            <g className="splash-ball-mark">
-              <circle cx="187" cy="132" r="30" fill="url(#ballGradient)" />
-              <path
-                d="M174 109c13 11 20 29 17 50"
-                fill="none"
-                stroke="#0f8d68"
-                strokeWidth="4"
-                strokeLinecap="round"
-              />
-              <path
-                d="M203 112c-11 12-17 28-14 48"
-                fill="none"
-                stroke="#0f8d68"
-                strokeWidth="4"
-                strokeLinecap="round"
-              />
-              <path
-                d="M163 133h48"
-                fill="none"
-                stroke="#ffffff"
-                strokeWidth="3"
-                strokeLinecap="round"
-                opacity="0.75"
-              />
-            </g>
           </svg>
         </div>
 

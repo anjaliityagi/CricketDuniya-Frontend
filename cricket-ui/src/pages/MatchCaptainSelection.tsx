@@ -4,11 +4,15 @@ import {
   ArrowLeft,
   ArrowRight,
   Crown,
+  Radio,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  UserCheck,
+  X,
   Loader2,
   RefreshCw,
-  Search,
   Shield,
-  ShieldCheck,
   Users,
 } from "lucide-react";
 import axios from "axios";
@@ -52,6 +56,30 @@ function getPlayerLabel(player: MatchSquadPlayer) {
 
 function getRolePlayerId(player: MatchSquadPlayer) {
   return player.user_id || player.match_team_player_id;
+}
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length > 1) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+
+  return (parts[0]?.slice(0, 2) || "P").toUpperCase();
+}
+
+function getSelectedSquadPlayerName(
+  teamA: TeamCaptainOption | undefined,
+  teamB: TeamCaptainOption | undefined,
+  playerId: string
+) {
+  if (!playerId) return "";
+
+  const selectedPlayer = [...(teamA?.players ?? []), ...(teamB?.players ?? [])].find(
+    (player) => getRolePlayerId(player) === playerId
+  );
+
+  return selectedPlayer ? getPlayerLabel(selectedPlayer) : "";
 }
 
 export default function MatchCaptainSelection() {
@@ -254,19 +282,19 @@ export default function MatchCaptainSelection() {
       <Card className="mb-4 overflow-hidden border-border bg-card py-0 shadow-xl">
         <div className="india-accent-strip h-1.5" />
         <CardContent className="p-5">
-          <div className="mb-4 rounded-xl border border-border bg-muted/70 p-3">
+          <div className="mb-4 rounded-2xl border border-border bg-muted/70 p-3">
             <div className="flex items-center gap-2">
               <Shield size={16} className="text-primary" />
-              <p className="text-sm font-bold">Choose captains and scorer/umpire</p>
+              <p className="text-sm font-bold">Assign match roles</p>
             </div>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Captains come from selected squads. Scorer/umpires can be any users.
+              Tap a crown on each squad card, then lock in scorer/umpires.
             </p>
           </div>
 
           <div className="space-y-4">
             {teamA && (
-              <TeamRoleSelectCard
+              <TeamCaptainDeck
                 team={teamA}
                 captainValue={teamACaptainId}
                 onCaptainChange={(value) => {
@@ -276,7 +304,7 @@ export default function MatchCaptainSelection() {
               />
             )}
             {teamB && (
-              <TeamRoleSelectCard
+              <TeamCaptainDeck
                 team={teamB}
                 captainValue={teamBCaptainId}
                 onCaptainChange={(value) => {
@@ -285,42 +313,22 @@ export default function MatchCaptainSelection() {
                 }}
               />
             )}
-            <ScorerUmpireCard
-              title="Primary Scorer/Umpire"
-              value={primaryScorerUmpireId}
-              onChange={(value) => {
+            <ScorerDeck
+              primaryValue={primaryScorerUmpireId}
+              secondaryValue={secondaryScorerUmpireId}
+              onPrimaryChange={(value) => {
                 setPrimaryScorerUmpireId(value);
                 setError("");
               }}
-              selectedFallback={
-                [...(teamA?.players ?? []), ...(teamB?.players ?? [])].find(
-                  (player) => getRolePlayerId(player) === primaryScorerUmpireId
-                )
-                  ? getPlayerLabel(
-                      [...(teamA?.players ?? []), ...(teamB?.players ?? [])].find(
-                        (player) => getRolePlayerId(player) === primaryScorerUmpireId
-                      )!
-                    )
-                  : ""
-              }
-            />
-            <ScorerUmpireCard
-              title="Secondary Scorer/Umpire"
-              value={secondaryScorerUmpireId}
-              onChange={(value) => {
+              onSecondaryChange={(value) => {
                 setSecondaryScorerUmpireId(value);
                 setError("");
               }}
-              selectedFallback={
-                [...(teamA?.players ?? []), ...(teamB?.players ?? [])].find(
-                  (player) => getRolePlayerId(player) === secondaryScorerUmpireId
-                )
-                  ? getPlayerLabel(
-                      [...(teamA?.players ?? []), ...(teamB?.players ?? [])].find(
-                        (player) => getRolePlayerId(player) === secondaryScorerUmpireId
-                      )!
-                    )
-                  : ""
+              primaryFallback={
+                getSelectedSquadPlayerName(teamA, teamB, primaryScorerUmpireId)
+              }
+              secondaryFallback={
+                getSelectedSquadPlayerName(teamA, teamB, secondaryScorerUmpireId)
               }
             />
           </div>
@@ -377,7 +385,7 @@ export default function MatchCaptainSelection() {
   );
 }
 
-function TeamRoleSelectCard({
+function TeamCaptainDeck({
   team,
   captainValue,
   onCaptainChange,
@@ -393,139 +401,146 @@ function TeamRoleSelectCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-background p-4 transition",
-        captainValue && "border-primary/50 bg-primary/10"
+        "overflow-hidden rounded-2xl border border-border bg-background transition",
+        captainValue && "border-primary/50"
       )}
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 border-b border-border bg-card/70 px-4 py-3">
         <div className="min-w-0">
           <p className="truncate text-base font-black">{team.teamName}</p>
           <p className="text-xs font-medium text-muted-foreground">
-            {team.players.length} selected players
+            {selectedCaptain
+              ? `${getPlayerLabel(selectedCaptain)} leads`
+              : `${team.players.length} players ready`}
           </p>
         </div>
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
-          <Crown size={18} />
+        <span
+          className={cn(
+            "grid size-10 shrink-0 place-items-center rounded-xl border transition",
+            selectedCaptain
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border bg-background text-muted-foreground"
+          )}
+        >
+          <Crown size={19} />
         </span>
       </div>
 
-      <div className="space-y-3">
-        <PlayerRoleSelect
-          icon={Crown}
-          label="Captain"
-          placeholder="Select captain"
-          players={team.players}
-          value={captainValue}
-          onChange={onCaptainChange}
-        />
-      </div>
-
-      {selectedCaptain && (
-        <div className="mt-3 grid grid-cols-1 gap-2">
-          <SelectedRole label="Captain" player={selectedCaptain} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ScorerUmpireCard({
-  title,
-  value,
-  onChange,
-  selectedFallback,
-}: {
-  title: string;
-  value: string;
-  onChange: (value: string) => void;
-  selectedFallback: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-xl border border-border bg-background p-4 transition",
-        value && "border-primary/50 bg-primary/10"
-      )}
-    >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-base font-black">{title}</p>
-          <p className="text-xs font-medium text-muted-foreground">
-            Search and select one user for this role
-          </p>
-        </div>
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
-          <ShieldCheck size={18} />
-        </span>
-      </div>
-
-      <UmpireSearchSelect
-        icon={ShieldCheck}
-        label="Scorer/Umpire"
-        placeholder="Search all users by name or phone"
-        value={value}
-        onChange={onChange}
-        selectedFallback={selectedFallback}
-      />
-    </div>
-  );
-}
-
-function PlayerRoleSelect({
-  icon: Icon,
-  label,
-  placeholder,
-  players,
-  value,
-  onChange,
-}: {
-  icon: typeof Crown;
-  label: string;
-  placeholder: string;
-  players: MatchSquadPlayer[];
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-        <Icon size={13} />
-        {label}
-      </span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm font-semibold shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-        disabled={players.length === 0}
-      >
-        <option value="">{placeholder}</option>
-        {players.map((player) => {
+      <div className="grid grid-cols-1 gap-2 p-3">
+        {team.players.map((player) => {
           const playerId = getRolePlayerId(player);
+          const isCaptain = playerId === captainValue;
 
           return (
-            <option key={player.match_team_player_id} value={playerId}>
-              {getPlayerLabel(player)}
-              {player.phone_number ? ` - ${player.phone_number}` : ""}
-            </option>
+            <button
+              key={player.match_team_player_id}
+              type="button"
+              className={cn(
+                "grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition",
+                isCaptain
+                  ? "border-primary bg-primary/10 shadow-sm"
+                  : "border-border bg-card hover:border-primary/40 hover:bg-primary/5"
+              )}
+              onClick={() => onCaptainChange(playerId)}
+            >
+              <span
+                className={cn(
+                  "grid size-10 place-items-center rounded-xl text-sm font-black",
+                  isCaptain
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                {getInitials(getPlayerLabel(player))}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-black">
+                  {getPlayerLabel(player)}
+                </span>
+                {player.phone_number && (
+                  <span className="block truncate text-xs font-semibold text-muted-foreground">
+                    {player.phone_number}
+                  </span>
+                )}
+              </span>
+              <span
+                className={cn(
+                  "grid size-9 place-items-center rounded-full border transition",
+                  isCaptain
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background text-muted-foreground"
+                )}
+                aria-label={isCaptain ? "Captain selected" : "Select captain"}
+              >
+                <Crown size={16} />
+              </span>
+            </button>
           );
         })}
-      </select>
-    </label>
+      </div>
+    </div>
+  );
+}
+
+function ScorerDeck({
+  primaryValue,
+  secondaryValue,
+  onPrimaryChange,
+  onSecondaryChange,
+  primaryFallback,
+  secondaryFallback,
+}: {
+  primaryValue: string;
+  secondaryValue: string;
+  onPrimaryChange: (value: string) => void;
+  onSecondaryChange: (value: string) => void;
+  primaryFallback: string;
+  secondaryFallback: string;
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-background">
+      <div className="flex items-center justify-between gap-3 border-b border-border bg-card/70 px-4 py-3">
+        <div className="min-w-0">
+          <p className="truncate text-base font-black">Scorer Deck</p>
+          <p className="text-xs font-medium text-muted-foreground">
+            Two scorer/umpire slots for the match
+          </p>
+        </div>
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
+          <Radio size={19} />
+        </span>
+      </div>
+
+      <div className="space-y-3 p-3">
+        <UmpireSearchSelect
+          label="Primary"
+          value={primaryValue}
+          blockedValue={secondaryValue}
+          onChange={onPrimaryChange}
+          selectedFallback={primaryFallback}
+        />
+        <UmpireSearchSelect
+          label="Secondary"
+          value={secondaryValue}
+          blockedValue={primaryValue}
+          onChange={onSecondaryChange}
+          selectedFallback={secondaryFallback}
+        />
+      </div>
+    </div>
   );
 }
 
 function UmpireSearchSelect({
-  icon: Icon,
   label,
-  placeholder,
   value,
+  blockedValue,
   onChange,
   selectedFallback,
 }: {
-  icon: typeof Crown;
   label: string;
-  placeholder: string;
   value: string;
+  blockedValue: string;
   onChange: (value: string) => void;
   selectedFallback: string;
 }) {
@@ -544,20 +559,45 @@ function UmpireSearchSelect({
   }, [value]);
 
   function handleSelect(user: UserSearchResult) {
+    if (blockedValue === user.id) {
+      return;
+    }
+
     setSelectedUser(user);
     onChange(user.id);
     setSearch("");
   }
 
   return (
-    <div>
-      <span className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-        <Icon size={13} />
-        {label}
-      </span>
+    <div
+      className={cn(
+        "rounded-2xl border border-border bg-card p-3 transition",
+        value && "border-primary/50 bg-primary/10"
+      )}
+    >
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-muted-foreground">
+          <ShieldCheck size={13} />
+          {label}
+        </span>
+        {value ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-1 text-[10px] font-black uppercase text-primary-foreground">
+            <UserCheck size={11} />
+            Locked
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1 text-[10px] font-black uppercase text-muted-foreground">
+            <Sparkles size={11} />
+            Open
+          </span>
+        )}
+      </div>
 
       {selectedLabel && (
-        <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-card px-3 py-2">
+        <div className="mb-2 grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl border border-primary/30 bg-background px-3 py-2">
+          <span className="grid size-9 place-items-center rounded-xl bg-primary text-sm font-black text-primary-foreground">
+            {getInitials(selectedLabel)}
+          </span>
           <div className="min-w-0">
             <p className="truncate text-sm font-black">{selectedLabel}</p>
             {selectedUser?.phone_number && (
@@ -569,14 +609,15 @@ function UmpireSearchSelect({
           <Button
             type="button"
             variant="ghost"
-            size="sm"
-            className="shrink-0"
+            size="icon"
+            className="size-8 shrink-0 rounded-full"
             onClick={() => {
               setSelectedUser(null);
               onChange("");
             }}
+            aria-label={`Clear ${label} scorer`}
           >
-            Change
+            <X size={14} />
           </Button>
         </div>
       )}
@@ -589,70 +630,65 @@ function UmpireSearchSelect({
         <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          className="h-11 bg-card pl-9 text-sm"
-          placeholder={placeholder}
+          className="h-11 rounded-xl bg-background pl-9 text-sm font-semibold"
+          placeholder="Search user name or phone"
         />
       </div>
 
       {isFetching && (
-        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="animate-spin" size={14} />
+        <div className="mt-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+          <Loader2 className="animate-spin text-primary" size={14} />
           Searching users
         </div>
       )}
 
       {showResults && users.length > 0 && (
-        <div className="mt-2 max-h-44 overflow-auto rounded-lg border border-border bg-card shadow-sm">
-          {users.map((user) => (
-            <button
-              key={user.id}
-              type="button"
-              className={cn(
-                "flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition hover:bg-muted",
-                value === user.id && "bg-primary/10 text-primary"
-              )}
-              onClick={() => handleSelect(user)}
-            >
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold">
-                  {user.name}
-                </span>
-                {user.phone_number && (
-                  <span className="block text-xs text-muted-foreground">
-                    {user.phone_number}
-                  </span>
+        <div className="mt-2 max-h-48 overflow-auto rounded-xl border border-border bg-background shadow-sm">
+          {users.map((user) => {
+            const isBlocked = blockedValue === user.id;
+
+            return (
+              <button
+                key={user.id}
+                type="button"
+                disabled={isBlocked}
+                className={cn(
+                  "grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-2 text-left transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50",
+                  value === user.id && "bg-primary/10 text-primary"
                 )}
-              </span>
-              {value === user.id && (
-                <span className="text-xs font-bold uppercase tracking-wide">
-                  Selected
+                onClick={() => handleSelect(user)}
+              >
+                <span className="grid size-8 place-items-center rounded-lg bg-primary/15 text-xs font-black text-primary">
+                  {getInitials(user.name)}
                 </span>
-              )}
-            </button>
-          ))}
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold">
+                    {user.name}
+                  </span>
+                  {user.phone_number && (
+                    <span className="block text-xs text-muted-foreground">
+                      {user.phone_number}
+                    </span>
+                  )}
+                </span>
+                {isBlocked ? (
+                  <span className="text-[10px] font-black uppercase text-muted-foreground">
+                    Used
+                  </span>
+                ) : value === user.id ? (
+                  <span className="text-primary">
+                    <ShieldCheck size={15} />
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
       )}
 
       {showResults && !isFetching && users.length === 0 && (
         <p className="mt-2 text-xs text-muted-foreground">No users found</p>
       )}
-    </div>
-  );
-}
-
-function SelectedRole({
-  label,
-  player,
-}: {
-  label: string;
-  player: MatchSquadPlayer;
-}) {
-  return (
-    <div className="rounded-lg border border-primary/30 bg-card px-3 py-2">
-      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 truncate text-sm font-black">{getPlayerLabel(player)}</p>
     </div>
   );
 }
