@@ -74,7 +74,6 @@ type ApiMatchInnings = Partial<MatchInnings> & {
   status?: string;
   is_super_over?: boolean;
   super_over_no?: number;
-  isFreeHit?: boolean | number | string;
 };
 
 type ApiDeliveriesByInnings = {
@@ -108,7 +107,6 @@ type ApiRecentBall = Partial<RecentBall> & {
   extraRuns?: number;
   isWicket?: boolean | number | string;
   wicket?: boolean | number | string;
-  isFreeHit?: boolean | number | string;
   dismissalType?: string | null;
   dismissedPlayerId?: string | null;
 };
@@ -137,7 +135,6 @@ export type MatchInnings = {
   status?: string;
   is_super_over?: boolean;
   super_over_no?: number;
-  is_free_hit?: boolean;
 };
 
 export type MatchSquadPlayer = {
@@ -197,7 +194,6 @@ export type RecentBall = {
   bowler_id: string;
   dismissed_player_id?: string | null;
   dismissal_type: string | null;
-  is_free_hit: boolean;
 };
 
 export type MatchScorecard = {
@@ -236,7 +232,6 @@ export type InningsState = {
   needs_next_batter?: boolean;
   required_runs_to_win?: number | null;
   balls_remaining?: number | null;
-  is_free_hit?: boolean;
 };
 
 const emptyScorecard: MatchScorecard = {
@@ -392,7 +387,6 @@ function normalizeInnings(entry: ApiMatchInnings): MatchInnings {
     status: entry.status,
     is_super_over: toBooleanFlag(entry.is_super_over),
     super_over_no: Number(entry.super_over_no ?? 0),
-    is_free_hit: toBooleanFlag(entry.is_free_hit ?? entry.isFreeHit),
   };
 }
 
@@ -446,7 +440,6 @@ function normalizeRecentBall(ball: ApiRecentBall): RecentBall {
     bowler_id: String(ball.bowler_id ?? ""),
     dismissed_player_id: ball.dismissed_player_id ?? ball.dismissedPlayerId ?? null,
     dismissal_type: dismissalType,
-    is_free_hit: toBooleanFlag(ball.is_free_hit ?? ball.isFreeHit),
   };
 }
 
