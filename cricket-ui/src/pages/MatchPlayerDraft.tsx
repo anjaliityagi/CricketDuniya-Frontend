@@ -143,10 +143,6 @@ function toPlayerLabel(player: LocalDraftPlayer) {
   return player.name || player.phone_number || "Unnamed player";
 }
 
-function normalizePlayerName(name: string) {
-  return name.trim().replace(/\s+/g, " ").toLowerCase();
-}
-
 function getInitials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
 
@@ -302,16 +298,6 @@ export default function MatchPlayerDraft() {
     return ids;
   }, [teamAPlayers, teamBPlayers]);
 
-  const takenNames = useMemo(() => {
-    const names = new Set<string>();
-    [...teamAPlayers, ...teamBPlayers].forEach((player) => {
-      const normalizedName = normalizePlayerName(player.name);
-      if (!normalizedName) return;
-      names.add(normalizedName);
-    });
-    return names;
-  }, [teamAPlayers, teamBPlayers]);
-
   function addLocalPlayer(side: TeamSide, player: LocalDraftPlayer) {
     if (side === "a") {
       setTeamAPlayers((current) => [...current, player]);
@@ -336,11 +322,9 @@ export default function MatchPlayerDraft() {
 
   function handleAddUser(user: UserSearchResult) {
     const phoneKey = normalizePhoneNumber(user.phone_number ?? "");
-    const nameKey = normalizePlayerName(user.name);
     if (
       (phoneKey && takenPhones.has(phoneKey)) ||
-      takenUserIds.has(user.id.trim().toLowerCase()) ||
-      (nameKey && takenNames.has(nameKey))
+      takenUserIds.has(user.id.trim().toLowerCase())
     ) {
       setError("This player is already in one of the teams");
       return;
@@ -389,7 +373,7 @@ export default function MatchPlayerDraft() {
       return;
     }
 
-    if (takenPhones.has(phoneNumber) || takenNames.has(normalizePlayerName(name))) {
+    if (takenPhones.has(phoneNumber)) {
       setManualError("This player is already in one of the teams");
       return;
     }
@@ -575,8 +559,7 @@ export default function MatchPlayerDraft() {
                   const phoneNorm = normalizePhoneNumber(user.phone_number ?? "");
                   const alreadyAdded =
                     (phoneNorm && takenPhones.has(phoneNorm)) ||
-                    takenUserIds.has(user.id.trim().toLowerCase()) ||
-                    takenNames.has(normalizePlayerName(user.name));
+                    takenUserIds.has(user.id.trim().toLowerCase());
 
                   return (
                     <div

@@ -190,6 +190,7 @@ export default function MatchDetail() {
 
   const overText = getOverDisplay(currentMatch.inningsBalls || 0);
   const runRate = getRunRate(battingScore.runs, currentMatch.inningsBalls || 0);
+  const battingTeamInitial = getTeamInitial(battingTeamName);
 
   function handleStartMatch() {
     if (!id) return;
@@ -312,7 +313,7 @@ export default function MatchDetail() {
                 <div>
                   <p className="text-xs text-muted-foreground">Batting</p>
                   <p className="text-xl font-black">
-                    {battingTeamName}{" "}
+                    {battingTeamInitial}{" "}
                     <span className="font-mono">
                       {formatScore(battingScore.runs, battingScore.wickets)}
                     </span>
@@ -557,6 +558,7 @@ function BackendLiveMatch({
       : innings?.batting_match_team_id === match.team_b_match_team_id
         ? match.teamTwoName
         : (innings?.batting_team ?? "Batting");
+  const battingTeamInitial = getTeamInitial(battingTeamName);
   const bowlingTeamName =
     innings?.bowling_match_team_id === match.team_a_match_team_id
       ? match.teamOneName
@@ -762,7 +764,7 @@ function BackendLiveMatch({
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate font-mono text-[32px] font-black tracking-tight text-foreground">
-                  {battingTeamName} {displayedRuns} - {displayedWickets}
+                  {battingTeamInitial} {displayedRuns} - {displayedWickets}
                 </p>
                 {chaseLine && (
                   <p className="mt-1 truncate text-[11px] font-medium text-muted-foreground">
@@ -1769,6 +1771,9 @@ function BackendScoreKeyboard({
   const [noBallNextBatterId, setNoBallNextBatterId] = useState("");
   const [isWicketDialogOpen, setIsWicketDialogOpen] = useState(false);
   const [isRetiredDialogOpen, setIsRetiredDialogOpen] = useState(false);
+  const [localDismissedIds, setLocalDismissedIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [incidentDismissedPlayerId, setIncidentDismissedPlayerId] =
     useState("");
   const [incidentDismissalType, setIncidentDismissalType] = useState("bowled");
@@ -1810,6 +1815,10 @@ function BackendScoreKeyboard({
       .filter((player) => player.is_out)
       .map((player) => player.match_team_player_id),
   );
+  localDismissedIds.forEach((playerId) => dismissedIds.add(playerId));
+  const availableBattingOptions = battingOptions.filter(
+    (player) => !dismissedIds.has(player.match_team_player_id),
+  );
   const nextBatterOptions = battingOptions.filter(
     (player) =>
       player.match_team_player_id !== strikerId &&
@@ -1843,6 +1852,13 @@ function BackendScoreKeyboard({
   }, [hasBackendState]);
 
   useEffect(() => {
+    if (liveState?.needs_next_batter) {
+      setIsPlayerDialogOpen(true);
+      setError("Choose the next batter before continuing");
+    }
+  }, [liveState?.needs_next_batter]);
+
+  useEffect(() => {
     if (liveState?.needs_next_bowler) {
       setIsBowlerDialogOpen(true);
       setBowlerId("");
@@ -1865,23 +1881,30 @@ function BackendScoreKeyboard({
     (player) => player.match_team_player_id !== currentBowlerId,
   );
   const isSingleBatterSetup = battingOptions.length === 1;
-  const allowSameBatterSelection = true;
+  const allowSameBatterSelection = isSingleBatterSetup;
   const isInningsComplete = Boolean(liveState?.innings_completed);
   const isScoringLocked =
     isUpdatingState ||
     isInningsComplete ||
+    Boolean(liveState?.needs_next_batter) ||
     Boolean(liveState?.needs_next_bowler) ||
     isBowlerDialogOpen;
 
   useEffect(() => {
     if (!isSingleBatterSetup) return;
 
-    const onlyBatterId = battingOptions[0]?.match_team_player_id;
+    const onlyBatterId = availableBattingOptions[0]?.match_team_player_id;
     if (!onlyBatterId) return;
 
     setStrikerId((current) => current || onlyBatterId);
     setNonStrikerId((current) => current || onlyBatterId);
-  }, [isSingleBatterSetup, battingOptions]);
+  }, [isSingleBatterSetup, availableBattingOptions]);
+
+  useEffect(() => {
+    if (!strikerId || strikerId !== nonStrikerId || isSingleBatterSetup) return;
+
+    setNonStrikerId("");
+  }, [isSingleBatterSetup, nonStrikerId, strikerId]);
 
   async function submitBall(options: {
     runs: number;
@@ -1913,6 +1936,18 @@ function BackendScoreKeyboard({
       setIsWideDialogOpen(false);
       setIsPlayerDialogOpen(true);
       setError("Select valid batters and a bowler from the bowling team first");
+      return;
+    }
+
+    if (
+      payloadWouldUseOutBatter({
+        strikerId,
+        nonStrikerId,
+        dismissedIds,
+      })
+    ) {
+      setIsPlayerDialogOpen(true);
+      setError("Choose an active batter before continuing");
       return;
     }
 
@@ -1991,6 +2026,13 @@ function BackendScoreKeyboard({
 
         onStateChange(nextState);
         onBallRecorded(payload, nextState, wasFreeHit);
+        if (payload.is_wicket && payload.dismissed_player_id) {
+          setLocalDismissedIds((current) => {
+            const next = new Set(current);
+            next.add(payload.dismissed_player_id!);
+            return next;
+          });
+        }
         if (response.state.innings_completed) {
           setError("Innings completed by backend. Scoring is stopped.");
         }
@@ -2023,6 +2065,17 @@ function BackendScoreKeyboard({
   async function handleStateOverride(closeDialog = false) {
     if (!strikerId || !nonStrikerId || !bowlerId) {
       setError("Select striker, non-striker and bowler first");
+      return;
+    }
+
+    if (
+      payloadWouldUseOutBatter({
+        strikerId,
+        nonStrikerId,
+        dismissedIds,
+      })
+    ) {
+      setError("Dismissed batters cannot continue batting");
       return;
     }
 
@@ -2253,6 +2306,7 @@ function BackendScoreKeyboard({
       setError("");
       const response = await undoLastBall(inningsId);
       onUndoBall();
+      setLocalDismissedIds(new Set());
       onStateChange(response.state);
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ["matches", match.id] }),
@@ -2273,7 +2327,7 @@ function BackendScoreKeyboard({
         strikerId={strikerId}
         nonStrikerId={nonStrikerId}
         bowlerId={bowlerId}
-        battingOptions={battingOptions}
+        battingOptions={availableBattingOptions}
         bowlingOptions={bowlingOptions}
         allowSameBatterSelection={allowSameBatterSelection}
         error={error}
@@ -2587,6 +2641,21 @@ function createRecentBallFromPayload(
     dismissal_type: payload.dismissal_type ?? null,
     is_free_hit: isFreeHit,
   };
+}
+
+function payloadWouldUseOutBatter({
+  strikerId,
+  nonStrikerId,
+  dismissedIds,
+}: {
+  strikerId: string;
+  nonStrikerId: string;
+  dismissedIds: Set<string>;
+}) {
+  return (
+    (Boolean(strikerId) && dismissedIds.has(strikerId)) ||
+    (Boolean(nonStrikerId) && dismissedIds.has(nonStrikerId))
+  );
 }
 
 function getActiveOverBalls(
@@ -3865,6 +3934,10 @@ function PlayerSelect({
 
 function formatScore(runs: number, wickets: number) {
   return `${runs}/${wickets}`;
+}
+
+function getTeamInitial(name?: string) {
+  return name?.trim().charAt(0).toUpperCase() || "T";
 }
 
 function isLiveInnings(innings: MatchScorecard["innings"][number]) {
