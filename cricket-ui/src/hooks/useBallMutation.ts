@@ -9,6 +9,9 @@ export function useBallMutation(matchId?: string) {
     mutationFn: (payload: AddBallPayload) => addBall(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["matches", matchId, "scorecard"] });
+      queryClient.invalidateQueries({
+        queryKey: ["matches", matchId, "win-probability"],
+      });
       queryClient.invalidateQueries({ queryKey: ["matches", matchId] });
     },
   });

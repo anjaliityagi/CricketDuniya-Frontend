@@ -243,6 +243,18 @@ export type InningsState = {
   is_free_hit?: boolean;
 };
 
+export type WinProbability = {
+  match_id: string;
+  batting_team_probability: number;
+  bowling_team_probability: number;
+  innings: number;
+  calculated_from: {
+    runs_required: number;
+    balls_remaining: number;
+    wickets_remaining: number;
+  };
+};
+
 const emptyScorecard: MatchScorecard = {
   innings: [],
   batting: [],
@@ -659,6 +671,14 @@ export async function fetchMatchScorecard(matchId: string) {
         )
       : [],
   };
+}
+
+export async function fetchWinProbability(matchId: string) {
+  const { data } = await api.get<WinProbability>(
+    `/matches/${matchId}/win-probability`
+  );
+
+  return data;
 }
 
 export async function addBall(payload: AddBallPayload) {

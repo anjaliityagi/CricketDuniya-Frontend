@@ -35,6 +35,7 @@ import { useMatchQuery } from "@/hooks/useMatchQuery";
 import { useMatchScorecardQuery } from "@/hooks/useMatchScorecardQuery";
 import { useMatchSquadQuery } from "@/hooks/useMatchSquadQuery";
 import { useProfileQuery } from "@/hooks/useProfileQuery";
+import { useWinProbabilityQuery } from "@/hooks/useWinProbabilityQuery";
 import { useAuth } from "@/context/AuthContext";
 import {
   completeMatch,
@@ -44,6 +45,7 @@ import {
   type MatchScorecard,
   type ScorecardPlayer,
   type MatchSquadPlayer,
+  type WinProbability,
   undoLastBall,
   updateInningsState,
 } from "@/services/matches";
@@ -126,6 +128,10 @@ export default function MatchDetail() {
   } = useMatchScorecardQuery(
     id,
     Boolean(id && isBackendMatch && apiMatch?.status !== "scheduled"),
+  );
+  const { data: winProbability } = useWinProbabilityQuery(
+    id,
+    Boolean(id && isBackendMatch && apiMatch?.status === "live"),
   );
   const { data: squad = [] } = useMatchSquadQuery(id);
   const ballMutation = useBallMutation(id);
@@ -298,6 +304,7 @@ export default function MatchDetail() {
           match={match}
           scorecard={scorecard}
           squad={squad}
+          winProbability={winProbability}
           isLive={isLive}
           isCompleted={isCompleted}
           canUpdateScore={canUpdateScore}
@@ -458,6 +465,7 @@ function BackendLiveMatch({
   match,
   scorecard,
   squad,
+  winProbability,
   isLive,
   isCompleted,
   canUpdateScore,
@@ -468,6 +476,7 @@ function BackendLiveMatch({
   match: NonNullable<ReturnType<typeof getMatchById>>;
   scorecard: MatchScorecard;
   squad: MatchSquadPlayer[];
+  winProbability?: WinProbability;
   isLive: boolean;
   isCompleted: boolean;
   canUpdateScore: boolean;
@@ -992,6 +1001,14 @@ function BackendLiveMatch({
                 </div>
               </div>
             </div>
+
+            {winProbability && (
+              <WinProbabilityPanel
+                probability={winProbability}
+                battingTeamName={battingTeamName}
+                bowlingTeamName={bowlingTeamName}
+              />
+            )}
           </div>
         </CardContent>
       </Card>
@@ -1057,6 +1074,122 @@ function BackendLiveMatch({
           winnerName={winnerName}
         />
       )}
+    </div>
+  );
+}
+
+function clampProbability(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(100, Math.max(0, value));
+}
+
+function formatProbability(value: number) {
+  return `${clampProbability(value).toFixed(1)}%`;
+}
+
+function WinProbabilityPanel({
+  probability,
+  battingTeamName,
+  bowlingTeamName,
+}: {
+  probability: WinProbability;
+  battingTeamName: string;
+  bowlingTeamName: string;
+}) {
+  const battingProbability = clampProbability(
+    probability.batting_team_probability,
+  );
+  const bowlingProbability = clampProbability(
+    probability.bowling_team_probability,
+  );
+  const battingLabel = formatTeamName(battingTeamName, 16);
+  const bowlingLabel = formatTeamName(bowlingTeamName, 16);
+  const chartStyle = {
+    background: `conic-gradient(hsl(var(--primary)) ${battingProbability}%, hsl(var(--muted)) 0)`,
+  };
+
+  return (
+    <div className="rounded-2xl border border-primary/15 bg-primary/5 p-3 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-muted-foreground">
+            Win Probability
+          </p>
+          <p className="mt-1 truncate text-xs font-semibold text-foreground">
+            Innings {probability.innings}
+          </p>
+        </div>
+        <div className="rounded-full border border-border bg-background px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+          Live
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-center">
+        <div
+          className="relative grid h-36 w-36 place-items-center rounded-full border border-border shadow-inner"
+          style={chartStyle}
+          aria-label={`${battingLabel} win probability ${formatProbability(
+            battingProbability,
+          )}`}
+        >
+          <div className="grid h-[104px] w-[104px] place-items-center rounded-full border border-border bg-background text-center shadow-sm">
+            <div>
+              <p className="font-mono text-2xl font-black text-foreground">
+                {formatProbability(battingProbability)}
+              </p>
+              <p className="mx-auto mt-0.5 max-w-20 truncate text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                {battingLabel}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+        <div className="rounded-xl border border-primary/20 bg-background/80 px-3 py-2">
+          <p className="truncate font-semibold text-foreground">
+            {battingLabel}
+          </p>
+          <p className="mt-1 font-mono text-lg font-black text-primary">
+            {formatProbability(battingProbability)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-right">
+          <p className="truncate font-semibold text-foreground">
+            {bowlingLabel}
+          </p>
+          <p className="mt-1 font-mono text-lg font-black text-muted-foreground">
+            {formatProbability(bowlingProbability)}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
+        <div className="rounded-xl border border-border/70 bg-background/80 px-2 py-2">
+          <p className="font-mono font-black text-foreground">
+            {probability.calculated_from.runs_required}
+          </p>
+          <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground">
+            Required
+          </p>
+        </div>
+        <div className="rounded-xl border border-border/70 bg-background/80 px-2 py-2">
+          <p className="font-mono font-black text-foreground">
+            {probability.calculated_from.balls_remaining}
+          </p>
+          <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground">
+            Balls
+          </p>
+        </div>
+        <div className="rounded-xl border border-border/70 bg-background/80 px-2 py-2">
+          <p className="font-mono font-black text-foreground">
+            {probability.calculated_from.wickets_remaining}
+          </p>
+          <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground">
+            Wickets
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2131,6 +2264,9 @@ function BackendScoreKeyboard({
         queryClient.refetchQueries({
           queryKey: ["matches", match.id, "scorecard"],
         }),
+        queryClient.refetchQueries({
+          queryKey: ["matches", match.id, "win-probability"],
+        }),
         queryClient.invalidateQueries({ queryKey: ["profile"] }),
         queryClient.invalidateQueries({ queryKey: ["player-profile"] }),
       ]);
@@ -2179,6 +2315,9 @@ function BackendScoreKeyboard({
         queryClient.refetchQueries({ queryKey: ["matches", match.id] }),
         queryClient.refetchQueries({
           queryKey: ["matches", match.id, "scorecard"],
+        }),
+        queryClient.refetchQueries({
+          queryKey: ["matches", match.id, "win-probability"],
         }),
       ]);
       if (closeDialog) {
