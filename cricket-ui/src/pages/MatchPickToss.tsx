@@ -7,7 +7,7 @@ import TossCoin from "@/components/TossCoin";
 import { useFirstPickMutation } from "@/hooks/useFirstPickMutation";
 import { useMatchQuery } from "@/hooks/useMatchQuery";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { formatTeamName, getTeamInitials } from "@/lib/teamName";
 import { cn } from "@/lib/utils";
 
 type TossWinner = "one" | "two" | "";
@@ -68,7 +68,7 @@ export default function MatchPickToss() {
 
   const currentMatch = match;
   const winnerName =
-    tossWinner === "one" ? currentMatch.teamOneName : tossWinner === "two" ? currentMatch.teamTwoName : "";
+    tossWinner === "one" ? formatTeamName(currentMatch.teamOneName) : tossWinner === "two" ? formatTeamName(currentMatch.teamTwoName) : "";
 
   function handleFlipCoin() {
     if (isFlipping) return;
@@ -184,7 +184,7 @@ function TossTeamCircle({
   isWinner: boolean;
   isFlipping: boolean;
 }) {
-  const shortName = label.slice(0, 2).toUpperCase();
+  const shortName = getTeamInitials(label);
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -198,7 +198,9 @@ function TossTeamCircle({
       >
         {shortName}
       </div>
-      <p className="text-sm font-semibold max-w-[100px] truncate">{label}</p>
+      <p className="text-sm font-semibold max-w-[100px] truncate">
+        {formatTeamName(label)}
+      </p>
       {isWinner && !isFlipping && (
         <span className="text-[10px] font-bold uppercase tracking-wide text-green-600">
           Won toss

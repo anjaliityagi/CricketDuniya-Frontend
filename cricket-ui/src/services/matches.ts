@@ -111,6 +111,9 @@ type ApiRecentBall = Partial<RecentBall> & {
   isFreeHit?: boolean | number | string;
   dismissalType?: string | null;
   dismissedPlayerId?: string | null;
+  fielderId?: string | null;
+  fielder_match_team_player_id?: string | null;
+  fielding_match_team_player_id?: string | null;
 };
 
 export type CreateMatchPayload = {
@@ -196,6 +199,7 @@ export type RecentBall = {
   non_striker_id: string;
   bowler_id: string;
   dismissed_player_id?: string | null;
+  fielder_id?: string | null;
   dismissal_type: string | null;
   is_free_hit: boolean;
 };
@@ -265,6 +269,8 @@ export type AddBallPayload = {
   dismissed_player_id?: string | null;
   next_batter_id?: string;
   fielder_id?: string | null;
+  fielder_match_team_player_id?: string | null;
+  fielding_match_team_player_id?: string | null;
 };
 
 export type BallResponse = {
@@ -445,6 +451,12 @@ function normalizeRecentBall(ball: ApiRecentBall): RecentBall {
     non_striker_id: String(ball.non_striker_id ?? ""),
     bowler_id: String(ball.bowler_id ?? ""),
     dismissed_player_id: ball.dismissed_player_id ?? ball.dismissedPlayerId ?? null,
+    fielder_id:
+      ball.fielder_id ??
+      ball.fielderId ??
+      ball.fielder_match_team_player_id ??
+      ball.fielding_match_team_player_id ??
+      null,
     dismissal_type: dismissalType,
     is_free_hit: toBooleanFlag(ball.is_free_hit ?? ball.isFreeHit),
   };

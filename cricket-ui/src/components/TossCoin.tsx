@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { getTeamInitials } from "@/lib/teamName";
 
 type TossCoinProps = {
   isFlipping: boolean;
@@ -17,8 +18,8 @@ export default function TossCoin({
   teamOneName = "",
   teamTwoName = "",
 }: TossCoinProps) {
-  const teamOneInitial = getTeamInitial(teamOneName, "A");
-  const teamTwoInitial = getTeamInitial(teamTwoName, "B");
+  const teamOneInitial = getTeamInitials(teamOneName) || "A";
+  const teamTwoInitial = getTeamInitials(teamTwoName) || "B";
   const coinLabel = (
     <span className="coin-label">
       <span>{teamOneInitial}</span>
@@ -59,8 +60,4 @@ export default function TossCoin({
       </div>
     </button>
   );
-}
-
-function getTeamInitial(name: string, fallback: string) {
-  return name.trim().charAt(0).toUpperCase() || fallback;
 }

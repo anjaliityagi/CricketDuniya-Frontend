@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import type { Match } from "@/data/mockMatches";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { formatTeamName } from "@/lib/teamName";
 
 type MatchCardProps = {
   match: Match;
@@ -37,7 +38,7 @@ function getReadableMatchNote(match: Match) {
 }
 
 function MatchCard({ match }: MatchCardProps) {
-  const title = `${match.teamOneName} vs ${match.teamTwoName}`;
+  const title = `${formatTeamName(match.teamOneName)} vs ${formatTeamName(match.teamTwoName)}`;
   const isLive = match.status === "live";
   const phaseLabel = getPhaseLabel(match.match_phase);
 
@@ -109,7 +110,7 @@ function TeamScore({
   return (
     <div className="flex-1 py-4 px-2 text-center">
       <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-        {team}
+        {formatTeamName(team)}
       </p>
       <p
         className={cn(

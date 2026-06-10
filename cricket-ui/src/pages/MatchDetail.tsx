@@ -50,6 +50,7 @@ import {
 import type { AuthUser } from "@/services/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatTeamName } from "@/lib/teamName";
 import { cn } from "@/lib/utils";
 
 function getApiErrorMessage(error: unknown, fallback: string) {
@@ -162,7 +163,7 @@ export default function MatchDetail() {
   }
 
   const currentMatch = match;
-  const title = `${currentMatch.teamOneName} vs ${currentMatch.teamTwoName}`;
+  const title = `${formatTeamName(currentMatch.teamOneName)} vs ${formatTeamName(currentMatch.teamTwoName)}`;
   const isLive = currentMatch.status === "live";
   const isCompleted = currentMatch.status === "completed";
   const showScorecard = isLive || isCompleted;
@@ -326,7 +327,7 @@ export default function MatchDetail() {
 
                 <div className="rounded-lg bg-background border border-border px-3 py-2">
                   <p className="text-[10px] text-muted-foreground">
-                    {bowlingTeamName}
+                    {formatTeamName(bowlingTeamName)}
                   </p>
                   <p className="font-mono font-bold text-sm">
                     {bowlingScore.runs === 0 &&
@@ -381,8 +382,8 @@ export default function MatchDetail() {
                   <p className="text-xs text-muted-foreground border-t border-border pt-2">
                     Toss:{" "}
                     {match.tossWinner === "one"
-                      ? match.teamOneName
-                      : match.teamTwoName}{" "}
+                      ? formatTeamName(match.teamOneName)
+                      : formatTeamName(match.teamTwoName)}{" "}
                     — {match.tossDecision}
                   </p>
                 )}
@@ -558,7 +559,6 @@ function BackendLiveMatch({
       : innings?.batting_match_team_id === match.team_b_match_team_id
         ? match.teamTwoName
         : (innings?.batting_team ?? "Batting");
-  const battingTeamInitial = getTeamInitial(battingTeamName);
   const bowlingTeamName =
     innings?.bowling_match_team_id === match.team_a_match_team_id
       ? match.teamOneName
@@ -572,12 +572,32 @@ function BackendLiveMatch({
   );
   const recentBalls =
     localRecentBalls.length > 0 ? localRecentBalls : scorecardRecentBalls;
-  const battingPlayers = scorecard.batting.filter(
-    (player) => player.match_team_id === innings?.batting_match_team_id,
+  const scopedBattingPlayers = getInningsScopedPlayers(
+    scorecard.batting,
+    innings,
+    innings.batting_match_team_id,
   );
-  const bowlingPlayers = scorecard.bowling.filter(
-    (player) => player.match_team_id === innings?.bowling_match_team_id,
+  const scopedBowlingPlayers = getInningsScopedPlayers(
+    scorecard.bowling,
+    innings,
+    innings.bowling_match_team_id,
   );
+  const liveInningsBalls =
+    localRecentBalls.length > 0
+      ? localRecentBalls
+      : getCompletedScorecardInningsDeliveries(scorecard, innings);
+  const derivedLiveSuperOverStats =
+    innings.is_super_over && liveInningsBalls.length > 0
+      ? getDerivedInningsPlayerStats(innings, liveInningsBalls, squad)
+      : null;
+  const battingPlayers =
+    innings.is_super_over && derivedLiveSuperOverStats
+      ? derivedLiveSuperOverStats.battingPlayers
+      : scopedBattingPlayers;
+  const bowlingPlayers =
+    innings.is_super_over && derivedLiveSuperOverStats
+      ? derivedLiveSuperOverStats.bowlingPlayers
+      : scopedBowlingPlayers;
 
   function createFallbackPlayer(playerId: string, teamId: string) {
     const squadPlayer = squad.find(
@@ -658,7 +678,7 @@ function BackendLiveMatch({
   );
   const tossSummary =
     match.tossWinner && match.tossDecision
-      ? `${match.tossWinner === "one" ? match.teamOneName : match.teamTwoName} (${match.tossDecision})`
+      ? `${match.tossWinner === "one" ? formatTeamName(match.teamOneName) : formatTeamName(match.teamTwoName)} (${match.tossDecision})`
       : "Not available";
   const completedPlayers = [...scorecard.batting].sort((a, b) => {
     if (b.fantasy_points !== a.fantasy_points)
@@ -709,8 +729,8 @@ function BackendLiveMatch({
       : isScorecardCompleted && regularMatchTied
         ? "Match tied. No winner declared."
         : "Match completed";
-  const lastWicketBall = scorecard.recent_balls.find((ball) =>
-    Boolean(ball.dismissal_type),
+  const lastWicketBall = scorecard.recent_balls.find(
+    (ball) => ball.innings_id === innings.id && Boolean(ball.dismissal_type),
   );
   const chaseLine =
     typeof liveState?.required_runs_to_win === "number" &&
@@ -747,16 +767,14 @@ function BackendLiveMatch({
 
   return (
     <div className="space-y-3">
-      {isSuperOverPhase(scorecard.match_phase) && (
-        <div className="rounded-2xl border border-primary/25 bg-primary/10 px-4 py-3">
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary">
-            {phaseMessage.title}
-          </p>
-          <p className="mt-1 text-sm font-semibold text-foreground">
-            {phaseMessage.body}
-          </p>
-        </div>
-      )}
+      <div className="rounded-2xl border border-primary/25 bg-primary/10 px-4 py-3">
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary">
+          {phaseMessage.title}
+        </p>
+        <p className="mt-1 text-sm font-semibold text-foreground">
+          {phaseMessage.body}
+        </p>
+      </div>
 
       <Card className="overflow-hidden border-border bg-card py-0 gap-0 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
         <CardContent className="space-y-3 p-4">
@@ -764,7 +782,8 @@ function BackendLiveMatch({
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate font-mono text-[32px] font-black tracking-tight text-foreground">
-                  {battingTeamInitial} {displayedRuns} - {displayedWickets}
+                  {formatTeamName(battingTeamName, 10)} {displayedRuns} -{" "}
+                  {displayedWickets}
                 </p>
                 {chaseLine && (
                   <p className="mt-1 truncate text-[11px] font-medium text-muted-foreground">
@@ -1106,6 +1125,13 @@ function CompletedMatchSummary({
     return ((player.runs_conceded * 6) / balls).toFixed(2);
   }
 
+  function getInningsScore(entry: MatchScorecard["innings"][number]) {
+    return getInningsDisplayScore(
+      entry,
+      getCompletedScorecardInningsDeliveries(scorecard, entry),
+    );
+  }
+
   const regularInnings = innings.filter((entry) => !entry.is_super_over);
   const superOverGroups = groupSuperOvers(innings);
   const superOverEntries = Object.entries(superOverGroups).sort(
@@ -1139,18 +1165,24 @@ function CompletedMatchSummary({
     scorecard.batting,
     selectedInnings,
     selectedInnings.batting_match_team_id,
+    false,
   );
   const selectedBowlingPlayers = getInningsScopedPlayers(
     scorecard.bowling,
     selectedInnings,
     selectedInnings.bowling_match_team_id,
+    false,
   );
   const selectedInningsBalls = getCompletedScorecardInningsDeliveries(
     scorecard,
     selectedInnings,
   );
-  const derivedSuperOverStats =
-    selectedInnings.is_super_over && selectedInningsBalls.length > 0
+  const selectedInningsScore = getInningsDisplayScore(
+    selectedInnings,
+    selectedInningsBalls,
+  );
+  const derivedInningsStats =
+    selectedInningsBalls.length > 0
       ? getDerivedInningsPlayerStats(
           selectedInnings,
           selectedInningsBalls,
@@ -1159,8 +1191,8 @@ function CompletedMatchSummary({
       : null;
 
   const battingPlayers = (
-    selectedInnings.is_super_over
-      ? (derivedSuperOverStats?.battingPlayers ?? [])
+    derivedInningsStats
+      ? derivedInningsStats.battingPlayers
       : selectedBattingPlayers.length > 0
         ? selectedBattingPlayers
         : []
@@ -1174,8 +1206,8 @@ function CompletedMatchSummary({
   });
 
   const bowlingPlayers = (
-    selectedInnings.is_super_over
-      ? (derivedSuperOverStats?.bowlingPlayers ?? [])
+    derivedInningsStats
+      ? derivedInningsStats.bowlingPlayers
       : selectedBowlingPlayers.length > 0
         ? selectedBowlingPlayers
         : []
@@ -1204,7 +1236,7 @@ function CompletedMatchSummary({
     );
 
   const extras = Math.max(
-    selectedInnings.total_runs -
+    selectedInningsScore.runs -
       battingPlayers.reduce((sum, player) => sum + player.runs_scored, 0),
     0,
   );
@@ -1230,8 +1262,8 @@ function CompletedMatchSummary({
                 {regularInnings.map((entry) => (
                   <InningsMiniScore
                     key={entry.id}
-                    innings={entry}
                     label={getInningsTeamName(entry)}
+                    score={getInningsScore(entry)}
                   />
                 ))}
               </div>
@@ -1250,8 +1282,8 @@ function CompletedMatchSummary({
                   {entries.map((entry) => (
                     <InningsMiniScore
                       key={entry.id}
-                      innings={entry}
                       label={getInningsTeamName(entry)}
+                      score={getInningsScore(entry)}
                     />
                   ))}
                 </div>
@@ -1286,8 +1318,8 @@ function CompletedMatchSummary({
               {getTeamName(selectedInnings.batting_match_team_id)}
             </p>
             <p className="font-mono text-lg font-black">
-              {selectedInnings.total_runs}-{selectedInnings.total_wickets} (
-              {selectedInnings.current_over}.{selectedInnings.current_ball} Ov)
+              {selectedInningsScore.runs}-{selectedInningsScore.wickets} (
+              {selectedInningsScore.overs}.{selectedInningsScore.balls} Ov)
             </p>
           </div>
 
@@ -1361,9 +1393,8 @@ function CompletedMatchSummary({
             <div className="grid grid-cols-[minmax(0,1fr)_200px] items-center gap-2 border-b border-border/70 px-4 py-2.5">
               <p className="text-sm font-black text-foreground">Total</p>
               <p className="text-right text-sm font-black text-foreground">
-                {selectedInnings.total_runs}-{selectedInnings.total_wickets} (
-                {selectedInnings.current_over}.{selectedInnings.current_ball}{" "}
-                Overs)
+                {selectedInningsScore.runs}-{selectedInningsScore.wickets} (
+                {selectedInningsScore.overs}.{selectedInningsScore.balls} Overs)
               </p>
             </div>
 
@@ -1496,11 +1527,16 @@ function CompletedMatchSummary({
 }
 
 function InningsMiniScore({
-  innings,
   label,
+  score,
 }: {
-  innings: MatchScorecard["innings"][number];
   label: string;
+  score: {
+    runs: number;
+    wickets: number;
+    overs: number;
+    balls: number;
+  };
 }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2">
@@ -1508,8 +1544,7 @@ function InningsMiniScore({
         {label}
       </span>
       <span className="shrink-0 font-mono text-sm font-black text-foreground">
-        {innings.total_runs}/{innings.total_wickets} ({innings.current_over}.
-        {innings.current_ball})
+        {score.runs}/{score.wickets} ({score.overs}.{score.balls})
       </span>
     </div>
   );
@@ -1523,10 +1558,15 @@ function getInningsScopedPlayers<
     super_over_no?: number;
     match_team_id: string;
   },
->(players: T[], innings: MatchScorecard["innings"][number], teamId: string) {
+>(
+  players: T[],
+  innings: MatchScorecard["innings"][number],
+  teamId: string,
+  allowUnscopedFallback = true,
+) {
   const inningsPlayers = players.filter((player) => {
     if (player.match_team_id !== teamId) return false;
-    if (player.innings_id && player.innings_id === innings.id) return true;
+    if (player.innings_id) return player.innings_id === innings.id;
 
     if (innings.is_super_over) {
       return (
@@ -1550,9 +1590,11 @@ function getInningsScopedPlayers<
     return [];
   }
 
-  return players.filter(
-    (player) => player.match_team_id === teamId && !player.innings_id,
-  );
+  return allowUnscopedFallback
+    ? players.filter(
+        (player) => player.match_team_id === teamId && !player.innings_id,
+      )
+    : [];
 }
 
 function getCompletedScorecardInningsDeliveries(
@@ -1579,6 +1621,33 @@ function getCompletedScorecardInningsDeliveries(
   return scorecard.recent_balls.filter(
     (ball) => ball.innings_id === innings.id,
   );
+}
+
+function getInningsDisplayScore(
+  innings: MatchScorecard["innings"][number],
+  balls: MatchScorecard["recent_balls"],
+) {
+  if (balls.length === 0) {
+    return {
+      runs: innings.total_runs,
+      wickets: innings.total_wickets,
+      overs: innings.current_over,
+      balls: innings.current_ball,
+    };
+  }
+
+  const legalBalls = balls.filter(isLegalRecentBall).length;
+
+  return {
+    runs: balls.reduce((sum, ball) => sum + ball.total_runs, 0),
+    wickets: balls.filter(
+      (ball) =>
+        ball.is_wicket &&
+        String(ball.dismissal_type ?? "") !== "retired_hurt",
+    ).length,
+    overs: Math.floor(legalBalls / 6),
+    balls: legalBalls % 6,
+  };
 }
 
 function createEmptyScorecardPlayer(
@@ -1810,8 +1879,22 @@ function BackendScoreKeyboard({
     bowlingPlayers.length > 0
       ? bowlingPlayers
       : squad.filter((player) => player.match_team_id === bowlingMatchTeamId);
+  const currentInnings = scorecard.innings.find(
+    (entry) => entry.id === inningsId,
+  );
+  const inningsBattingStats = currentInnings
+    ? getInningsScopedPlayers(
+        scorecard.batting,
+        currentInnings,
+        battingMatchTeamId,
+      )
+    : scorecard.batting.filter(
+        (player) =>
+          player.match_team_id === battingMatchTeamId &&
+          player.innings_id === inningsId,
+      );
   const dismissedIds = new Set(
-    scorecard.batting
+    inningsBattingStats
       .filter((player) => player.is_out)
       .map((player) => player.match_team_player_id),
   );
@@ -1997,6 +2080,8 @@ function BackendScoreKeyboard({
       }
       if (options.fielderId) {
         payload.fielder_id = options.fielderId;
+        payload.fielder_match_team_player_id = options.fielderId;
+        payload.fielding_match_team_player_id = options.fielderId;
       }
     }
 
@@ -2046,6 +2131,8 @@ function BackendScoreKeyboard({
         queryClient.refetchQueries({
           queryKey: ["matches", match.id, "scorecard"],
         }),
+        queryClient.invalidateQueries({ queryKey: ["profile"] }),
+        queryClient.invalidateQueries({ queryKey: ["player-profile"] }),
       ]);
       setIsWicketDialogOpen(false);
       setIsWideDialogOpen(false);
@@ -2638,6 +2725,7 @@ function createRecentBallFromPayload(
     non_striker_id: payload.non_striker_id ?? "",
     bowler_id: payload.bowler_id ?? "",
     dismissed_player_id: payload.dismissed_player_id ?? null,
+    fielder_id: payload.fielder_id ?? null,
     dismissal_type: payload.dismissal_type ?? null,
     is_free_hit: isFreeHit,
   };
@@ -3986,21 +4074,43 @@ function getLivePhaseMessage({
     (entry) => entry.id === innings.id,
   );
   const isChase = inningsIndex > 0;
+  const firstSuperOverInnings = superOverInnings[0];
+  const superOverTarget =
+    isChase && firstSuperOverInnings
+      ? firstSuperOverInnings.total_runs + 1
+      : null;
 
   if (superOverNo > 0) {
     return {
-      title: `Super Over #${superOverNo} Live`,
+      title: isChase
+        ? `Super Over #${superOverNo} Chase`
+        : `Super Over #${superOverNo} First Innings`,
       body: isChase
-        ? `${battingTeamName} are chasing in the Super Over. Keep scoring this innings normally.`
+        ? `${formatTeamName(battingTeamName)} need ${superOverTarget ?? "the target"} to win this Super Over.`
         : regularMatchTied
-          ? `The match was tied, so ${battingTeamName} are batting in Super Over #${superOverNo}.`
-          : `${battingTeamName} are batting in Super Over #${superOverNo}.`,
+          ? `The match was tied, so ${formatTeamName(battingTeamName)} are batting first in the Super Over.`
+          : `${formatTeamName(battingTeamName)} are batting first in Super Over #${superOverNo}.`,
     };
   }
 
+  const regularInnings = scorecard.innings
+    .filter((entry) => !entry.is_super_over)
+    .sort((a, b) => a.innings_no - b.innings_no);
+  const regularIndex = regularInnings.findIndex(
+    (entry) => entry.id === innings.id,
+  );
+  const firstRegularInnings = regularInnings[0];
+  const isSecondInnings = regularIndex > 0 || innings.innings_no === 2;
+  const target =
+    isSecondInnings && firstRegularInnings
+      ? firstRegularInnings.total_runs + 1
+      : null;
+
   return {
-    title: "Live Innings",
-    body: `${battingTeamName} are batting. Score each ball as it happens.`,
+    title: isSecondInnings ? "Second Innings Chase" : "First Innings Live",
+    body: isSecondInnings
+      ? `${formatTeamName(battingTeamName)} need ${target ?? "the target"} to win.`
+      : `${formatTeamName(battingTeamName)} are batting first.`,
   };
 }
 
@@ -4193,7 +4303,7 @@ function TeamScore({ name, score }: { name: string; score?: string }) {
   return (
     <div className="flex-1 py-2 px-2 text-center">
       <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-0.5">
-        {name}
+        {formatTeamName(name)}
       </p>
       <p className="font-mono text-base font-bold">{score || "—"}</p>
     </div>
