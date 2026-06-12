@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
   ArrowRight,
   Check,
   Loader2,
@@ -17,6 +16,7 @@ import {
 import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
 
+import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -460,13 +460,7 @@ export default function MatchPlayerDraft() {
 
   return (
     <div className="max-w-[430px] mx-auto pb-10">
-      <Link
-        to={`/matches/${id}/pick-toss`}
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-6"
-      >
-        <ArrowLeft size={18} />
-        Back to toss
-      </Link>
+      <BackButton fallbackTo={`/matches/${id}/pick-toss`} label="Back to toss" className="mb-6" />
 
       <h1 className="text-2xl font-bold mb-1">Player Draft</h1>
       <p className="text-muted-foreground text-sm mb-6">

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import axios from "axios";
 
+import BackButton from "@/components/BackButton";
 import { useCreateTeamMutation } from "@/hooks/useCreateTeamMutation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,13 +38,7 @@ export default function CreateTeam() {
 
   return (
     <div className="max-w-[430px] mx-auto pb-10">
-      <Link
-        to="/teams"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-6"
-      >
-        <ArrowLeft size={18} />
-        Back to teams
-      </Link>
+      <BackButton fallbackTo="/teams" label="Back to teams" className="mb-6" />
 
       <h1 className="text-2xl font-bold mb-1">Create Team</h1>
       <p className="text-muted-foreground text-sm mb-6">Add a new team for your matches</p>

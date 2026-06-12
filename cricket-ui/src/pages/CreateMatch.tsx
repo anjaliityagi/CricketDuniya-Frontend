@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import axios from "axios";
 
+import BackButton from "@/components/BackButton";
 import { useCreateMatchMutation } from "@/hooks/useCreateMatchMutation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,13 +114,7 @@ export default function CreateMatch() {
 
   return (
     <div className="max-w-[430px] mx-auto pb-10">
-      <Link
-        to="/matches"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-6"
-      >
-        <ArrowLeft size={18} />
-        Back to matches
-      </Link>
+      <BackButton fallbackTo="/matches" label="Back to matches" className="mb-6" />
 
       <h1 className="text-2xl font-bold mb-1">Create Match</h1>
       <p className="text-muted-foreground text-sm mb-6">

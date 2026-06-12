@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import axios from "axios";
 
+import BackButton from "@/components/BackButton";
 import TossCoin from "@/components/TossCoin";
 import { useFirstPickMutation } from "@/hooks/useFirstPickMutation";
 import { useMatchQuery } from "@/hooks/useMatchQuery";
@@ -109,13 +110,7 @@ export default function MatchPickToss() {
 
   return (
     <div className="max-w-[430px] mx-auto pb-10">
-      <Link
-        to="/matches"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-6"
-      >
-        <ArrowLeft size={18} />
-        Back to matches
-      </Link>
+      <BackButton fallbackTo="/matches" label="Back to matches" className="mb-6" />
 
       <h1 className="text-2xl font-bold mb-1">Player Pick Toss</h1>
       <p className="text-muted-foreground text-sm mb-6">

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
   ArrowRight,
   Crown,
   Radio,
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
+import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -257,13 +257,7 @@ export default function MatchCaptainSelection() {
 
   return (
     <div className="max-w-[430px] mx-auto pb-10">
-      <Link
-        to={`/matches/${id}/players`}
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-6"
-      >
-        <ArrowLeft size={18} />
-        Back to players
-      </Link>
+      <BackButton fallbackTo={`/matches/${id}/players`} label="Back to players" className="mb-6" />
 
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>

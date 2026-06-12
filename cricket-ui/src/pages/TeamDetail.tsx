@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
   Check,
   Loader2,
   MapPin,
@@ -18,6 +17,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
+import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -156,13 +156,7 @@ export default function TeamDetail() {
 
   return (
     <div className="max-w-[430px] mx-auto pb-10">
-      <Link
-        to="/teams"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-6"
-      >
-        <ArrowLeft size={18} />
-        Back to teams
-      </Link>
+      <BackButton fallbackTo="/teams" label="Back to teams" className="mb-6" />
 
       <Card className="bg-card border-border mb-4">
         <CardContent className="p-5 space-y-5">

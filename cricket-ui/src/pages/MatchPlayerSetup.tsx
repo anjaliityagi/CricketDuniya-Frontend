@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import axios from "axios";
 
+import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -129,13 +130,7 @@ export default function MatchPlayerSetup() {
 
   return (
     <div className="max-w-[430px] mx-auto pb-10">
-      <Link
-        to={`/matches/${id}`}
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-6"
-      >
-        <ArrowLeft size={18} />
-        Back
-      </Link>
+      <BackButton fallbackTo={`/matches/${id}`} label="Back" className="mb-6" />
 
       <h1 className="text-2xl font-bold mb-1">Match Lineup</h1>
       <p className="text-muted-foreground text-sm mb-6">

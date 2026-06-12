@@ -437,10 +437,13 @@ function normalizeRecentBall(ball: ApiRecentBall): RecentBall {
     ball.ball_type ?? ball.ballType ?? ball.type ?? ball.delivery_type ?? ball.deliveryType
   );
   const dismissalType = ball.dismissal_type ?? ball.dismissalType ?? null;
+  const normalizedDismissalType = dismissalType
+    ? normalizeBallType(dismissalType)
+    : null;
   const isWicket =
     toBooleanFlag(ball.is_wicket ?? ball.isWicket ?? ball.wicket) ||
     ballType === "wicket" ||
-    Boolean(dismissalType);
+    Boolean(dismissalType && normalizedDismissalType !== "retired_hurt");
 
   return {
     id: String(ball.id ?? ball._id ?? crypto.randomUUID()),

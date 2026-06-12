@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, ArrowLeft, Loader2, Phone, Shield, Star, Trophy } from "lucide-react";
+import { Activity, Loader2, Phone, Shield, Star, Trophy } from "lucide-react";
 
+import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -77,11 +78,7 @@ export default function PlayerProfile() {
   return (
     <div className="mx-auto max-w-[430px] px-4 pb-24 pt-3">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <Button type="button" variant="ghost" size="icon" asChild>
-          <Link to="/matches">
-            <ArrowLeft size={18} />
-          </Link>
-        </Button>
+        <BackButton fallbackTo="/matches" label="Back to previous screen" iconOnly />
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Player Profile</p>
           <h1 className="truncate text-xl font-black text-foreground">{user.name}</h1>

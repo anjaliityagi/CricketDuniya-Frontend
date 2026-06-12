@@ -241,8 +241,9 @@ export function recordWicket(id: string) {
   const battingPlayers = match.battingTeam ? getTeamPlayers(match, match.battingTeam) : [];
   const maxPossibleWickets = Math.max(battingPlayers.length - 1, 0);
   if (maxPossibleWickets > 0 && teamScore.wickets >= maxPossibleWickets) return;
+  const nextWickets = teamScore.wickets + 1;
 
-  setBattingScore(match, teamScore.runs, teamScore.wickets + 1);
+  setBattingScore(match, teamScore.runs, nextWickets);
 
   match.striker.balls += 1;
   match.currentBowler.wickets += 1;
@@ -253,7 +254,9 @@ export function recordWicket(id: string) {
 
   match.inningsBalls = (match.inningsBalls || 0) + 1;
 
-  bringNewBatsman(match);
+  if (maxPossibleWickets === 0 || nextWickets < maxPossibleWickets) {
+    bringNewBatsman(match);
+  }
 
   if (match.inningsBalls % 6 === 0) {
     match.thisOverBalls = [];

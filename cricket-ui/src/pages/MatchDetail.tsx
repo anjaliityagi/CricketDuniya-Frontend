@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
   Crosshair,
   Loader2,
   Shield,
@@ -50,6 +49,7 @@ import {
   updateInningsState,
 } from "@/services/matches";
 import type { AuthUser } from "@/services/auth";
+import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatTeamName } from "@/lib/teamName";
@@ -245,13 +245,7 @@ export default function MatchDetail() {
           "pb-[calc(min(40vh,380px)+1rem)]",
       )}
     >
-      <Link
-        to="/matches"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground mb-3"
-      >
-        <ArrowLeft size={16} />
-        Back
-      </Link>
+      <BackButton fallbackTo="/matches" label="Back" iconSize={16} className="mb-3 gap-1.5" />
 
       <div className="mb-3 flex items-center justify-between gap-3">
         <h1 className="min-w-0 text-xl font-bold">{title}</h1>
@@ -486,14 +480,10 @@ function BackendLiveMatch({
 }) {
   const innings = getCurrentScorecardInnings(scorecard);
   const [liveState, setLiveState] = useState<InningsState | null>(null);
-  const [localRecentBalls, setLocalRecentBalls] = useState<
-    MatchScorecard["recent_balls"]
-  >([]);
   const isScorecardCompleted = scorecard.match_phase === "completed";
 
   useEffect(() => {
     setLiveState(null);
-    setLocalRecentBalls([]);
   }, [innings?.id]);
 
   useEffect(() => {
@@ -506,8 +496,6 @@ function BackendLiveMatch({
         Boolean(current.needs_next_bowler) &&
         Boolean(scorecard.current_bowler_id) &&
         scorecard.current_bowler_id !== current.bowler_id;
-
-      const shouldKeepLocalFreeHit = localRecentBalls.length > 0;
 
       return {
         ...current,
@@ -522,9 +510,7 @@ function BackendLiveMatch({
         legal_balls: innings.legal_balls,
         current_over: innings.current_over,
         current_ball: innings.current_ball,
-        is_free_hit: shouldKeepLocalFreeHit
-          ? current.is_free_hit
-          : innings.is_free_hit,
+        is_free_hit: innings.is_free_hit,
         needs_next_bowler: bowlerChangedAfterOver
           ? false
           : current.needs_next_bowler,
@@ -533,7 +519,6 @@ function BackendLiveMatch({
     });
   }, [
     innings,
-    localRecentBalls.length,
     scorecard.current_bowler_id,
     scorecard.current_non_striker_id,
     scorecard.current_striker_id,
@@ -579,8 +564,7 @@ function BackendLiveMatch({
     liveState?.current_over ?? innings.current_over,
     liveState?.current_ball ?? innings.current_ball,
   );
-  const recentBalls =
-    localRecentBalls.length > 0 ? localRecentBalls : scorecardRecentBalls;
+  const recentBalls = scorecardRecentBalls;
   const scopedBattingPlayers = getInningsScopedPlayers(
     scorecard.batting,
     innings,
@@ -591,10 +575,10 @@ function BackendLiveMatch({
     innings,
     innings.bowling_match_team_id,
   );
-  const liveInningsBalls =
-    localRecentBalls.length > 0
-      ? localRecentBalls
-      : getCompletedScorecardInningsDeliveries(scorecard, innings);
+  const liveInningsBalls = getCompletedScorecardInningsDeliveries(
+    scorecard,
+    innings,
+  );
   const derivedLiveSuperOverStats =
     innings.is_super_over && liveInningsBalls.length > 0
       ? getDerivedInningsPlayerStats(innings, liveInningsBalls, squad)
@@ -739,7 +723,10 @@ function BackendLiveMatch({
         ? "Match tied. No winner declared."
         : "Match completed";
   const lastWicketBall = scorecard.recent_balls.find(
-    (ball) => ball.innings_id === innings.id && Boolean(ball.dismissal_type),
+    (ball) =>
+      ball.innings_id === innings.id &&
+      Boolean(ball.dismissal_type) &&
+      !isRetiredHurtRecentBall(ball),
   );
   const chaseLine =
     typeof liveState?.required_runs_to_win === "number" &&
@@ -1026,24 +1013,6 @@ function BackendLiveMatch({
             currentInningsIsFreeHit={isFreeHit}
             liveState={liveState}
             onStateChange={setLiveState}
-            onBallRecorded={(payload, nextState, wasFreeHit) => {
-              const isIllegalDelivery = [
-                "wide",
-                "no_ball",
-                "dead_ball",
-              ].includes(payload.ball_type);
-
-              if (!isIllegalDelivery && nextState.current_ball === 0) {
-                setLocalRecentBalls([]);
-                return;
-              }
-
-              setLocalRecentBalls((current) => [
-                ...(current.length > 0 ? current : scorecardRecentBalls),
-                createRecentBallFromPayload(payload, innings.id, wasFreeHit),
-              ]);
-            }}
-            onUndoBall={() => setLocalRecentBalls([])}
             isSaving={isSavingBall}
             onAddBall={onAddBall}
             onEndMatch={onEndMatch}
@@ -1774,9 +1743,7 @@ function getInningsDisplayScore(
   return {
     runs: balls.reduce((sum, ball) => sum + ball.total_runs, 0),
     wickets: balls.filter(
-      (ball) =>
-        ball.is_wicket &&
-        String(ball.dismissal_type ?? "") !== "retired_hurt",
+      (ball) => ball.is_wicket && !isRetiredHurtRecentBall(ball),
     ).length,
     overs: Math.floor(legalBalls / 6),
     balls: legalBalls % 6,
@@ -1891,7 +1858,8 @@ function getDerivedInningsPlayerStats(
       }
       if (
         ball.is_wicket &&
-        !["run_out", "retired_hurt"].includes(String(ball.dismissal_type ?? ""))
+        !["run_out"].includes(getDismissalTypeKey(ball.dismissal_type)) &&
+        !isRetiredHurtRecentBall(ball)
       ) {
         bowler.wickets_taken += 1;
       }
@@ -1899,7 +1867,7 @@ function getDerivedInningsPlayerStats(
 
     const dismissedPlayerId =
       ball.dismissed_player_id || (ball.is_wicket ? ball.striker_id : "");
-    if (dismissedPlayerId) {
+    if (dismissedPlayerId && !isRetiredHurtRecentBall(ball)) {
       getBatter(dismissedPlayerId).is_out = true;
     }
   }
@@ -1920,8 +1888,6 @@ function BackendScoreKeyboard({
   currentInningsIsFreeHit,
   liveState,
   onStateChange,
-  onBallRecorded,
-  onUndoBall,
   isSaving,
   onAddBall,
   onEndMatch,
@@ -1935,12 +1901,6 @@ function BackendScoreKeyboard({
   currentInningsIsFreeHit: boolean;
   liveState: InningsState | null;
   onStateChange: (state: InningsState) => void;
-  onBallRecorded: (
-    payload: AddBallPayload,
-    nextState: InningsState,
-    wasFreeHit: boolean,
-  ) => void;
-  onUndoBall: () => void;
   isSaving: boolean;
   onAddBall: (payload: AddBallPayload) => Promise<BallResponse>;
   onEndMatch: () => void;
@@ -1981,12 +1941,23 @@ function BackendScoreKeyboard({
   const [incidentDismissalType, setIncidentDismissalType] = useState("bowled");
   const [incidentNextBatterId, setIncidentNextBatterId] = useState("");
   const [incidentFielderId, setIncidentFielderId] = useState("");
+  const previousInningsIdRef = useRef(inningsId);
 
   useEffect(() => {
-    setStrikerId(currentStrikerId);
-    setNonStrikerId(currentNonStrikerId);
-    setBowlerId(currentBowlerId);
-  }, [currentBowlerId, currentNonStrikerId, currentStrikerId]);
+    const inningsChanged = previousInningsIdRef.current !== inningsId;
+
+    if (inningsChanged) {
+      previousInningsIdRef.current = inningsId;
+      setStrikerId(currentStrikerId);
+      setNonStrikerId(currentNonStrikerId);
+      setBowlerId(currentBowlerId);
+      return;
+    }
+
+    if (currentStrikerId) setStrikerId(currentStrikerId);
+    if (currentNonStrikerId) setNonStrikerId(currentNonStrikerId);
+    if (currentBowlerId) setBowlerId(currentBowlerId);
+  }, [currentBowlerId, currentNonStrikerId, currentStrikerId, inningsId]);
 
   useEffect(() => {
     if (currentStrikerId) {
@@ -2031,6 +2002,32 @@ function BackendScoreKeyboard({
       .filter((player) => player.is_out)
       .map((player) => player.match_team_player_id),
   );
+  const retiredHurtIds = new Set(
+    scorecard.recent_balls
+      .filter(
+        (ball) =>
+          ball.innings_id === inningsId &&
+          isRetiredHurtRecentBall(ball) &&
+          ball.dismissed_player_id,
+      )
+      .map((ball) => ball.dismissed_player_id!),
+  );
+  const wicketDismissedIds = new Set(
+    scorecard.recent_balls
+      .filter(
+        (ball) =>
+          ball.innings_id === inningsId &&
+          !isRetiredHurtRecentBall(ball) &&
+          (ball.is_wicket || Boolean(ball.dismissed_player_id)),
+      )
+      .map((ball) => ball.dismissed_player_id || ball.striker_id)
+      .filter(Boolean),
+  );
+  retiredHurtIds.forEach((playerId) => {
+    if (!wicketDismissedIds.has(playerId)) {
+      dismissedIds.delete(playerId);
+    }
+  });
   localDismissedIds.forEach((playerId) => dismissedIds.add(playerId));
   const availableBattingOptions = battingOptions.filter(
     (player) => !dismissedIds.has(player.match_team_player_id),
@@ -2041,6 +2038,29 @@ function BackendScoreKeyboard({
       player.match_team_player_id !== nonStrikerId &&
       !dismissedIds.has(player.match_team_player_id),
   );
+  function getReplacementOptionsForRetiredBatter(retiredPlayerId: string) {
+    return battingOptions.filter(
+      (player) =>
+        player.match_team_player_id !== retiredPlayerId &&
+        player.match_team_player_id !== strikerId &&
+        player.match_team_player_id !== nonStrikerId &&
+        !dismissedIds.has(player.match_team_player_id),
+    );
+  }
+  const activeBattingPlayerCount = battingOptions.length;
+  const maxPossibleWickets = Math.max(activeBattingPlayerCount - 1, 0);
+  const dismissedCount = dismissedIds.size;
+  function isInningsEndingDismissal(dismissedPlayerId: string) {
+    if (maxPossibleWickets <= 0) return false;
+
+    const dismissalAddsWicket = dismissedPlayerId
+      ? !dismissedIds.has(dismissedPlayerId)
+      : true;
+    const wicketsAfterDismissal =
+      dismissedCount + (dismissalAddsWicket ? 1 : 0);
+
+    return wicketsAfterDismissal >= maxPossibleWickets;
+  }
   const dismissalPlayerOptions = battingOptions.filter(
     (player) =>
       player.match_team_player_id === strikerId ||
@@ -2054,6 +2074,7 @@ function BackendScoreKeyboard({
     useState(!hasBackendState);
   const [isBowlerDialogOpen, setIsBowlerDialogOpen] = useState(false);
   const isFreeHit = Boolean(liveState?.is_free_hit ?? currentInningsIsFreeHit);
+  const isInningsComplete = Boolean(liveState?.innings_completed);
 
   useEffect(() => {
     if (isFreeHit && incidentDismissalType !== "run_out") {
@@ -2061,11 +2082,20 @@ function BackendScoreKeyboard({
     }
   }, [incidentDismissalType, isFreeHit]);
 
+  const hasCompletePlayerSelection = Boolean(
+    strikerId && nonStrikerId && bowlerId && strikerId !== nonStrikerId,
+  );
+  const needsOpeningSetup =
+    !isInningsComplete &&
+    !liveState?.needs_next_batter &&
+    !hasBackendState &&
+    !hasCompletePlayerSelection;
+
   useEffect(() => {
-    if (!hasBackendState) {
+    if (needsOpeningSetup) {
       setIsPlayerDialogOpen(true);
     }
-  }, [hasBackendState]);
+  }, [needsOpeningSetup]);
 
   useEffect(() => {
     if (liveState?.needs_next_batter) {
@@ -2096,9 +2126,7 @@ function BackendScoreKeyboard({
   const eligibleNextBowlerOptions = bowlingOptions.filter(
     (player) => player.match_team_player_id !== currentBowlerId,
   );
-  const isSingleBatterSetup = battingOptions.length === 1;
-  const allowSameBatterSelection = isSingleBatterSetup;
-  const isInningsComplete = Boolean(liveState?.innings_completed);
+  const hasEnoughActiveBatters = activeBattingPlayerCount >= 2;
   const isScoringLocked =
     isUpdatingState ||
     isInningsComplete ||
@@ -2107,20 +2135,10 @@ function BackendScoreKeyboard({
     isBowlerDialogOpen;
 
   useEffect(() => {
-    if (!isSingleBatterSetup) return;
-
-    const onlyBatterId = availableBattingOptions[0]?.match_team_player_id;
-    if (!onlyBatterId) return;
-
-    setStrikerId((current) => current || onlyBatterId);
-    setNonStrikerId((current) => current || onlyBatterId);
-  }, [isSingleBatterSetup, availableBattingOptions]);
-
-  useEffect(() => {
-    if (!strikerId || strikerId !== nonStrikerId || isSingleBatterSetup) return;
+    if (!strikerId || strikerId !== nonStrikerId) return;
 
     setNonStrikerId("");
-  }, [isSingleBatterSetup, nonStrikerId, strikerId]);
+  }, [nonStrikerId, strikerId]);
 
   async function submitBall(options: {
     runs: number;
@@ -2133,8 +2151,20 @@ function BackendScoreKeyboard({
     nextBatterId?: string;
     fielderId?: string;
   }) {
+    if (!hasEnoughActiveBatters) {
+      setIsPlayerDialogOpen(true);
+      setError("Batting team needs at least 2 active players");
+      return;
+    }
+
     if (!hasBackendState && (!strikerId || !nonStrikerId || !bowlerId)) {
       setError("Select striker, non-striker and bowler first");
+      return;
+    }
+
+    if (strikerId === nonStrikerId) {
+      setIsPlayerDialogOpen(true);
+      setError("Choose two different batters");
       return;
     }
 
@@ -2174,6 +2204,11 @@ function BackendScoreKeyboard({
         setError("Innings completed by backend. Scoring is stopped.");
         return;
       }
+      if (liveState?.needs_next_batter) {
+        setIsPlayerDialogOpen(true);
+        setError("Choose the next batter before continuing");
+        return;
+      }
       setIsBowlerDialogOpen(true);
       setError(
         isUpdatingState
@@ -2206,8 +2241,27 @@ function BackendScoreKeyboard({
     }
 
     if (options.isWicket || options.ballType === "retired_hurt") {
+      const dismissedPlayerId = options.dismissedPlayerId ?? strikerId;
+      const replacementOptions =
+        options.ballType === "retired_hurt"
+          ? getReplacementOptionsForRetiredBatter(dismissedPlayerId)
+          : nextBatterOptions;
+      const needsNextBatter =
+        replacementOptions.length > 0 &&
+        (options.ballType === "retired_hurt" ||
+          !isInningsEndingDismissal(dismissedPlayerId));
+
+      if (needsNextBatter && !options.nextBatterId) {
+        setError(
+          options.ballType === "retired_hurt"
+            ? "Choose the replacement batter"
+            : "Choose the next batter",
+        );
+        return;
+      }
+
       payload.dismissal_type = options.dismissalType;
-      payload.dismissed_player_id = options.dismissedPlayerId ?? strikerId;
+      payload.dismissed_player_id = dismissedPlayerId;
       if (options.nextBatterId) {
         payload.next_batter_id = options.nextBatterId;
       }
@@ -2229,7 +2283,7 @@ function BackendScoreKeyboard({
           payload.ball_type === "no_ball"
             ? true
             : Boolean(response.state.is_free_hit);
-        const nextState = isIllegalDelivery
+        const stateFromResponse = isIllegalDelivery
           ? {
               ...response.state,
               bowler_id: response.state.bowler_id ?? bowlerId,
@@ -2241,9 +2295,30 @@ function BackendScoreKeyboard({
               ...response.state,
               is_free_hit: nextIsFreeHit,
             };
+        const isRetiredHurtWithoutReplacement =
+          payload.ball_type === "retired_hurt" && !payload.next_batter_id;
+        const nextState =
+          isRetiredHurtWithoutReplacement
+            ? {
+                ...stateFromResponse,
+                innings_completed: true,
+                needs_next_batter: false,
+                needs_next_bowler: false,
+              }
+            : payload.next_batter_id && !stateFromResponse.innings_completed
+            ? resolveStateAfterIncomingBatter({
+                state: stateFromResponse,
+                strikerId,
+                nonStrikerId,
+                dismissedPlayerId: payload.dismissed_player_id ?? "",
+                nextBatterId: payload.next_batter_id,
+              })
+            : stateFromResponse;
 
         onStateChange(nextState);
-        onBallRecorded(payload, nextState, wasFreeHit);
+        setStrikerId(nextState.striker_id ?? "");
+        setNonStrikerId(nextState.non_striker_id ?? "");
+        setBowlerId(nextState.bowler_id ?? "");
         if (payload.is_wicket && payload.dismissed_player_id) {
           setLocalDismissedIds((current) => {
             const next = new Set(current);
@@ -2286,8 +2361,18 @@ function BackendScoreKeyboard({
   }
 
   async function handleStateOverride(closeDialog = false) {
+    if (!hasEnoughActiveBatters) {
+      setError("Batting team needs at least 2 active players");
+      return;
+    }
+
     if (!strikerId || !nonStrikerId || !bowlerId) {
       setError("Select striker, non-striker and bowler first");
+      return;
+    }
+
+    if (strikerId === nonStrikerId) {
+      setError("Choose two different batters");
       return;
     }
 
@@ -2472,7 +2557,12 @@ function BackendScoreKeyboard({
       setError("Choose the retired batter");
       return;
     }
-    if (!incidentNextBatterId) {
+    const replacementOptions = getReplacementOptionsForRetiredBatter(
+      incidentDismissedPlayerId,
+    );
+    const hasReplacementOption = replacementOptions.length > 0;
+
+    if (hasReplacementOption && !incidentNextBatterId) {
       setError("Choose the replacement batter");
       return;
     }
@@ -2482,7 +2572,7 @@ function BackendScoreKeyboard({
       isWicket: false,
       dismissalType: "retired_hurt",
       dismissedPlayerId: incidentDismissedPlayerId,
-      nextBatterId: incidentNextBatterId,
+      nextBatterId: hasReplacementOption ? incidentNextBatterId : undefined,
     });
   }
 
@@ -2531,7 +2621,6 @@ function BackendScoreKeyboard({
     try {
       setError("");
       const response = await undoLastBall(inningsId);
-      onUndoBall();
       setLocalDismissedIds(new Set());
       onStateChange(response.state);
       await Promise.all([
@@ -2555,7 +2644,6 @@ function BackendScoreKeyboard({
         bowlerId={bowlerId}
         battingOptions={availableBattingOptions}
         bowlingOptions={bowlingOptions}
-        allowSameBatterSelection={allowSameBatterSelection}
         error={error}
         isSaving={isUpdatingState}
         onClose={() => setIsPlayerDialogOpen(false)}
@@ -2645,7 +2733,9 @@ function BackendScoreKeyboard({
         retiredPlayerId={incidentDismissedPlayerId}
         replacementBatterId={incidentNextBatterId}
         batterOptions={dismissalPlayerOptions}
-        replacementOptions={nextBatterOptions}
+        replacementOptions={getReplacementOptionsForRetiredBatter(
+          incidentDismissedPlayerId,
+        )}
         error={error}
         isSaving={isSaving || isUpdatingState}
         onClose={() => setIsRetiredDialogOpen(false)}
@@ -2845,29 +2935,24 @@ function isLegalRecentBall(ball: MatchScorecard["recent_balls"][number]) {
   );
 }
 
-function createRecentBallFromPayload(
-  payload: AddBallPayload,
-  inningsId: string,
-  isFreeHit = false,
-): MatchScorecard["recent_balls"][number] {
-  return {
-    id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    innings_id: inningsId,
-    ball_no: 0,
-    delivery_no: 0,
-    ball_type: payload.ball_type,
-    runs_off_bat: payload.runs_off_bat,
-    extras: payload.extras,
-    total_runs: payload.total_runs,
-    is_wicket: payload.is_wicket,
-    striker_id: payload.striker_id ?? "",
-    non_striker_id: payload.non_striker_id ?? "",
-    bowler_id: payload.bowler_id ?? "",
-    dismissed_player_id: payload.dismissed_player_id ?? null,
-    fielder_id: payload.fielder_id ?? null,
-    dismissal_type: payload.dismissal_type ?? null,
-    is_free_hit: isFreeHit,
-  };
+function getDismissalTypeKey(value: string | null | undefined) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+}
+
+function isRetiredHurtRecentBall(
+  ball: MatchScorecard["recent_balls"][number],
+) {
+  const dismissalType = getDismissalTypeKey(ball.dismissal_type);
+
+  return (
+    ball.ball_type === "retired_hurt" ||
+    dismissalType === "retired_hurt" ||
+    dismissalType === "retiredhurt" ||
+    dismissalType === "retired"
+  );
 }
 
 function payloadWouldUseOutBatter({
@@ -2883,6 +2968,50 @@ function payloadWouldUseOutBatter({
     (Boolean(strikerId) && dismissedIds.has(strikerId)) ||
     (Boolean(nonStrikerId) && dismissedIds.has(nonStrikerId))
   );
+}
+
+function resolveStateAfterIncomingBatter({
+  state,
+  strikerId,
+  nonStrikerId,
+  dismissedPlayerId,
+  nextBatterId,
+}: {
+  state: InningsState;
+  strikerId: string;
+  nonStrikerId: string;
+  dismissedPlayerId: string;
+  nextBatterId: string;
+}): InningsState {
+  const responseStrikerId = state.striker_id ?? "";
+  const responseNonStrikerId = state.non_striker_id ?? "";
+  const strikerNeedsReplacement =
+    !responseStrikerId || responseStrikerId === dismissedPlayerId;
+  const nonStrikerNeedsReplacement =
+    !responseNonStrikerId || responseNonStrikerId === dismissedPlayerId;
+
+  if (dismissedPlayerId === strikerId && strikerNeedsReplacement) {
+    return {
+      ...state,
+      striker_id: nextBatterId,
+      non_striker_id: responseNonStrikerId || nonStrikerId,
+      needs_next_batter: false,
+    };
+  }
+
+  if (dismissedPlayerId === nonStrikerId && nonStrikerNeedsReplacement) {
+    return {
+      ...state,
+      striker_id: responseStrikerId || strikerId,
+      non_striker_id: nextBatterId,
+      needs_next_batter: false,
+    };
+  }
+
+  return {
+    ...state,
+    needs_next_batter: false,
+  };
 }
 
 function getActiveOverBalls(
@@ -3834,7 +3963,9 @@ function RetiredHurtDialog({
           <div className="border-b border-border px-5 pb-4 pt-5">
             <p className="text-xl font-black tracking-tight">Retired hurt</p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Replace the retired batter without adding a wicket.
+              {replacementOptions.length > 0
+                ? "Replace the retired batter without adding a wicket."
+                : "No replacement batter is available, so the innings will end without adding a wicket."}
             </p>
           </div>
           <div className="space-y-3 px-5 py-5">
@@ -3845,13 +3976,19 @@ function RetiredHurtDialog({
               players={batterOptions}
               disabled={isSaving}
             />
-            <PlayerSelect
-              label="Replacement batter"
-              value={replacementBatterId}
-              onChange={onReplacementChange}
-              players={replacementOptions}
-              disabled={isSaving}
-            />
+            {replacementOptions.length > 0 ? (
+              <PlayerSelect
+                label="Replacement batter"
+                value={replacementBatterId}
+                onChange={onReplacementChange}
+                players={replacementOptions}
+                disabled={isSaving}
+              />
+            ) : (
+              <div className="rounded-2xl border border-border bg-muted/70 px-3 py-2 text-xs font-medium text-muted-foreground">
+                No eligible replacement batter is left.
+              </div>
+            )}
             {error && (
               <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
                 {error}
@@ -3925,7 +4062,6 @@ function PlayerSetupDialog({
   bowlerId,
   battingOptions,
   bowlingOptions,
-  allowSameBatterSelection,
   error,
   isSaving,
   onClose,
@@ -3941,7 +4077,6 @@ function PlayerSetupDialog({
   bowlerId: string;
   battingOptions: MatchSquadPlayer[];
   bowlingOptions: MatchSquadPlayer[];
-  allowSameBatterSelection: boolean;
   error: string;
   isSaving: boolean;
   onClose: () => void;
@@ -4030,14 +4165,9 @@ function PlayerSetupDialog({
                 value={strikerId}
                 onChange={onStrikerChange}
                 disabled={isSaving}
-                players={
-                  allowSameBatterSelection
-                    ? battingOptions
-                    : battingOptions.filter(
-                        (player) =>
-                          player.match_team_player_id !== nonStrikerId,
-                      )
-                }
+                players={battingOptions.filter(
+                  (player) => player.match_team_player_id !== nonStrikerId,
+                )}
               />
             </div>
 
@@ -4053,13 +4183,9 @@ function PlayerSetupDialog({
                 value={nonStrikerId}
                 onChange={onNonStrikerChange}
                 disabled={isSaving}
-                players={
-                  allowSameBatterSelection
-                    ? battingOptions
-                    : battingOptions.filter(
-                        (player) => player.match_team_player_id !== strikerId,
-                      )
-                }
+                players={battingOptions.filter(
+                  (player) => player.match_team_player_id !== strikerId,
+                )}
               />
             </div>
 
