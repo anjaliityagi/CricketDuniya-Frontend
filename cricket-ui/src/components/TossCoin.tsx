@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { getTeamInitials } from "@/lib/teamName";
 
 type TossCoinProps = {
   isFlipping: boolean;
@@ -18,13 +17,14 @@ export default function TossCoin({
   teamOneName = "",
   teamTwoName = "",
 }: TossCoinProps) {
-  const teamOneInitial = getTeamInitials(teamOneName) || "A";
-  const teamTwoInitial = getTeamInitials(teamTwoName) || "B";
+  const teamOneInitial = getCoinTeamLabel(teamOneName, "A");
+  const teamTwoInitial = getCoinTeamLabel(teamTwoName, "B");
+  const isCompactLabel = teamOneInitial.length + teamTwoInitial.length > 4;
   const coinLabel = (
-    <span className="coin-label">
-      <span>{teamOneInitial}</span>
+    <span className={cn("coin-label", isCompactLabel && "coin-label-compact")}>
+      <span className="coin-team-code">{teamOneInitial}</span>
       <span className="coin-vs">vs</span>
-      <span>{teamTwoInitial}</span>
+      <span className="coin-team-code">{teamTwoInitial}</span>
     </span>
   );
 
@@ -60,4 +60,19 @@ export default function TossCoin({
       </div>
     </button>
   );
+}
+
+function getCoinTeamLabel(name: string | undefined, fallback: string) {
+  const words = String(name ?? "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (words.length === 0) return fallback;
+  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
+
+  return words
+    .slice(0, 3)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join("");
 }

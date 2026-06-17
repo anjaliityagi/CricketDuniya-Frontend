@@ -562,12 +562,24 @@ body::before {
   align-items: center;
   justify-content: center;
   gap: 0.28rem;
+  max-width: 5.6rem;
   font-size: 1.55rem;
   font-weight: 900;
   color: #713f12;
   letter-spacing: 0;
   line-height: 1;
   text-shadow: 0 1px 0 rgb(255 255 255 / 0.35);
+  white-space: nowrap;
+}
+
+.coin-label-compact {
+  gap: 0.12rem;
+  font-size: 1rem;
+}
+
+.coin-team-code {
+  min-width: 0;
+  text-align: center;
 }
 
 .coin-vs {

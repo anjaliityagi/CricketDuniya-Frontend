@@ -2491,7 +2491,11 @@ function BackendScoreKeyboard({
 
   async function handleNoBallSubmit(options?: { simple?: boolean }) {
     const batRuns = options?.simple ? 0 : noBallBatRuns;
-    const extras = options?.simple ? 1 : Math.max(noBallExtras, 1);
+    const extras = options?.simple
+      ? 1
+      : batRuns > 0
+        ? 1
+        : Math.max(noBallExtras, 1);
     const shouldRecordWicket = options?.simple ? false : noBallIsWicket;
 
     if (shouldRecordWicket && !noBallDismissedPlayerId) {
@@ -2516,6 +2520,13 @@ function BackendScoreKeyboard({
       nextBatterId: shouldRecordWicket ? noBallNextBatterId : undefined,
       fielderId: shouldRecordWicket ? noBallFielderId : undefined,
     });
+  }
+
+  function handleNoBallBatRunsChange(value: number) {
+    setNoBallBatRuns(value);
+    if (value > 0) {
+      setNoBallExtras(1);
+    }
   }
 
   async function handleWideSubmit(options?: { simple?: boolean }) {
@@ -2700,7 +2711,7 @@ function BackendScoreKeyboard({
         error={error}
         isSaving={isSaving || isUpdatingState}
         onClose={() => setIsNoBallDialogOpen(false)}
-        onBatRunsChange={setNoBallBatRuns}
+        onBatRunsChange={handleNoBallBatRunsChange}
         onExtrasChange={setNoBallExtras}
         onWicketChange={setNoBallIsWicket}
         onDismissedPlayerChange={setNoBallDismissedPlayerId}
@@ -2812,9 +2823,7 @@ function BackendScoreKeyboard({
                 {[0, 1, 2, 3, 4, 6].map((run) => (
                   <KeyBtn
                     key={run}
-                    tone={
-                      run >= 4 ? "primary" : run === 0 ? "muted" : "default"
-                    }
+                    tone={run === 0 ? "muted" : "default"}
                     disabled={isSaving || isScoringLocked}
                     onClick={() => submitBall({ runs: run })}
                   >
@@ -3518,7 +3527,8 @@ function NoBallDialog({
 
   const batRunOptions = [0, 1, 2, 3, 4, 6] as const;
   const extraOptions = [1, 2, 3, 4, 5] as const;
-  const totalRuns = batRuns + Math.max(extras, 1);
+  const effectiveExtras = batRuns > 0 ? 1 : Math.max(extras, 1);
+  const totalRuns = batRuns + effectiveExtras;
 
   return (
     <div className="fixed inset-0 z-50 bg-background/70 backdrop-blur-md">
@@ -3607,7 +3617,7 @@ function NoBallDialog({
                   </p>
                 </div>
                 <p className="text-[11px] font-bold text-muted-foreground">
-                  Team +{totalRuns}
+                  Extras +{effectiveExtras}
                 </p>
               </div>
               <div className="grid grid-cols-5 gap-1.5">
@@ -3615,11 +3625,11 @@ function NoBallDialog({
                   <button
                     key={run}
                     type="button"
-                    disabled={isSaving}
+                    disabled={isSaving || batRuns > 0}
                     onClick={() => onExtrasChange(run)}
                     className={cn(
                       "h-11 rounded-xl border text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60",
-                      extras === run
+                      effectiveExtras === run
                         ? "border-amber-400 bg-amber-400 text-amber-950 shadow-sm"
                         : "border-border bg-background text-foreground hover:bg-accent",
                     )}
@@ -3628,6 +3638,11 @@ function NoBallDialog({
                   </button>
                 ))}
               </div>
+              {batRuns > 0 && (
+                <p className="mt-2 text-[11px] font-medium text-muted-foreground">
+                  Bat runs keep no-ball extras at +1.
+                </p>
+              )}
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
