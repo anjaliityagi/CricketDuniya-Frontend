@@ -3,7 +3,8 @@ import axios from "axios";
 export const AUTH_TOKEN_KEY = "cricket_duniya_auth_token";
 export const AUTH_USER_KEY = "cricket_duniya_auth_user";
 
-const rawBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+const rawBaseUrl =
+  "https://cricketduniya-backend-dev-739600687295.asia-south1.run.app";
 
 const basePath = import.meta.env.VITE_API_BASE_PATH ?? "/v1";
 const trimmedBaseUrl = rawBaseUrl.replace(/\/$/, "");
